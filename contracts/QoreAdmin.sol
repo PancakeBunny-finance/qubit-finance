@@ -40,6 +40,7 @@ import "./interfaces/IQDistributor.sol";
 import "./interfaces/IPriceCalculator.sol";
 import "./library/WhitelistUpgradeable.sol";
 import {QConstant} from "./library/QConstant.sol";
+import "./interfaces/IQToken.sol";
 
 
 abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
@@ -148,5 +149,20 @@ abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
         marketInfos[qToken] = QConstant.MarketInfo({isListed : true, borrowCap : borrowCap, collateralFactor : collateralFactor});
         markets.push(qToken);
         emit MarketListed(qToken);
+    }
+
+    function removeMarket(address payable qToken) external onlyKeeper {
+        require(marketInfos[qToken].isListed, "Qore: unlisted market");
+        require(IQToken(qToken).totalSupply() == 0 && IQToken(qToken).totalBorrow() == 0, "Qore: cannot remove market");
+
+        address[] memory updatedMarkets = new address[](markets.length - 1);
+        uint counter = 0;
+        for (uint i = 0; i < markets.length; i++) {
+            if (markets[i] != qToken) {
+                updatedMarkets[counter++] = markets[i];
+            }
+        }
+        markets = updatedMarkets;
+        delete marketInfos[qToken];
     }
 }
