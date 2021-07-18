@@ -29,6 +29,10 @@ interface IDashboard {
         uint borrow;
         uint totalSupply;
         uint totalBorrow;
+        uint supplyBoosted;
+        uint borrowBoosted;
+        uint totalSupplyBoosted;
+        uint totalBorrowBoosted;
     }
 
     struct PortfolioData {

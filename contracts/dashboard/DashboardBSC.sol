@@ -154,6 +154,8 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
         marketData.borrow = IQToken(market).borrowBalanceOf(account);
         marketData.totalSupply = IQToken(market).totalSupply().mul(IQToken(market).exchangeRate()).div(1e18);
         marketData.totalBorrow = IQToken(market).totalBorrow();
+        (marketData.supplyBoosted, marketData.borrowBoosted) = qDistributor.boostedBalanceOf(market, account);
+        (marketData.totalSupplyBoosted, marketData.totalBorrowBoosted) = qDistributor.totalBoosted(market);
         return marketData;
     }
 
