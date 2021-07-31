@@ -46,7 +46,6 @@ import "../interfaces/IQToken.sol";
 import "../interfaces/IQore.sol";
 import "../library/QConstant.sol";
 
-
 abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeMath for uint;
 
@@ -77,7 +76,7 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
 
     /* ========== INITIALIZER ========== */
 
-    receive() payable external {}
+    receive() external payable {}
 
     function __QMarket_init() internal initializer {
         __Ownable_init();
@@ -89,7 +88,7 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
 
     /* ========== MODIFIERS ========== */
 
-    modifier accrue {
+    modifier accrue() {
         if (block.timestamp > lastAccruedTime && address(rateModel) != address(0)) {
             uint borrowRate = rateModel.getBorrowRate(getCashPrior(), _totalBorrow, totalReserve);
             uint interestFactor = borrowRate.mul(block.timestamp.sub(lastAccruedTime));
@@ -103,7 +102,7 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
         _;
     }
 
-    modifier onlyQore {
+    modifier onlyQore() {
         require(msg.sender == address(qore), "QToken: only Qore Contract");
         _;
     }
@@ -189,7 +188,12 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function accruedAccountSnapshot(address account) external override accrue returns (QConstant.AccountSnapshot memory) {
+    function accruedAccountSnapshot(address account)
+        external
+        override
+        accrue
+        returns (QConstant.AccountSnapshot memory)
+    {
         QConstant.AccountSnapshot memory snapshot;
         snapshot.qTokenBalance = accountBalances[account];
         snapshot.borrowBalance = accountBorrows[account].borrow;
@@ -218,7 +222,11 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
 
     /* ========== INTERNAL FUNCTIONS ========== */
 
-    function updateBorrowInfo(address account, uint addAmount, uint subAmount) internal {
+    function updateBorrowInfo(
+        address account,
+        uint addAmount,
+        uint subAmount
+    ) internal {
         QConstant.BorrowInfo storage info = accountBorrows[account];
         if (info.interestIndex == 0) {
             info.interestIndex = accInterestIndex;
@@ -232,7 +240,11 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
         _totalBorrow = (_totalBorrow < DUST) ? 0 : _totalBorrow;
     }
 
-    function updateSupplyInfo(address account, uint addAmount, uint subAmount) internal {
+    function updateSupplyInfo(
+        address account,
+        uint addAmount,
+        uint subAmount
+    ) internal {
         accountBalances[account] = accountBalances[account].add(addAmount).sub(subAmount);
         totalSupply = totalSupply.add(addAmount).sub(subAmount);
 
@@ -240,7 +252,10 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
     }
 
     function getCashPrior() internal view returns (uint) {
-        return underlying == address(WBNB) ? address(this).balance.sub(msg.value) : IBEP20(underlying).balanceOf(address(this));
+        return
+            underlying == address(WBNB)
+                ? address(this).balance.sub(msg.value)
+                : IBEP20(underlying).balanceOf(address(this));
     }
 
     function pendingAccrueSnapshot() internal view returns (QConstant.AccrueSnapshot memory) {

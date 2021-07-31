@@ -38,33 +38,42 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../../interfaces/IRateModel.sol";
 
-
 contract RateModelLinear is IRateModel, OwnableUpgradeable {
     using SafeMath for uint;
 
     uint private baseRatePerYear;
     uint private multiplierPerYear;
 
-    function initialize(
-        uint _baseRatePerYear,
-        uint _multiplierPerYear
-    ) external initializer {
+    function initialize(uint _baseRatePerYear, uint _multiplierPerYear) external initializer {
         __Ownable_init();
         baseRatePerYear = _baseRatePerYear;
         multiplierPerYear = _multiplierPerYear;
     }
 
-    function utilizationRate(uint cash, uint borrows, uint reserves) public pure returns (uint) {
+    function utilizationRate(
+        uint cash,
+        uint borrows,
+        uint reserves
+    ) public pure returns (uint) {
         if (borrows == 0) return 0;
         return borrows.mul(1e18).div(cash.add(borrows).sub(reserves));
     }
 
-    function getBorrowRate(uint cash, uint borrows, uint reserves) public view override returns (uint) {
+    function getBorrowRate(
+        uint cash,
+        uint borrows,
+        uint reserves
+    ) public view override returns (uint) {
         uint utilization = utilizationRate(cash, borrows, reserves);
         return (utilization.mul(multiplierPerYear).div(1e18).add(baseRatePerYear)).div(365 days);
     }
 
-    function getSupplyRate(uint cash, uint borrows, uint reserves, uint reserveFactor) public view override returns (uint) {
+    function getSupplyRate(
+        uint cash,
+        uint borrows,
+        uint reserves,
+        uint reserveFactor
+    ) public view override returns (uint) {
         uint oneMinusReserveFactor = uint(1e18).sub(reserveFactor);
         uint borrowRate = getBorrowRate(cash, borrows, reserves);
         uint rateToPool = borrowRate.mul(oneMinusReserveFactor).div(1e18);

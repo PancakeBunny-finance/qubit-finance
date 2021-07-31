@@ -43,7 +43,6 @@ import "../interfaces/IQubitLocker.sol";
 import "../library/WhitelistUpgradeable.sol";
 import "../library/SafeToken.sol";
 
-
 contract QubitLocker is IQubitLocker, WhitelistUpgradeable, ReentrancyGuardUpgradeable {
     using SafeMath for uint;
     using SafeToken for address;
@@ -128,10 +127,10 @@ contract QubitLocker is IQubitLocker, WhitelistUpgradeable, ReentrancyGuardUpgra
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     function deposit(uint amount, uint expiry) external override nonReentrant {
-        require(amount > 0, 'QubitLocker: invalid amount');
+        require(amount > 0, "QubitLocker: invalid amount");
 
         expiry = balances[msg.sender] == 0 ? truncateExpiry(expiry) : expires[msg.sender];
-        require(block.timestamp < expiry && expiry <= block.timestamp + LOCK_UNIT_MAX, 'QubitLocker: invalid expiry');
+        require(block.timestamp < expiry && expiry <= block.timestamp + LOCK_UNIT_MAX, "QubitLocker: invalid expiry");
 
         _slopeChanges[expiry] = _slopeChanges[expiry].add(amount.div(LOCK_UNIT_MAX));
         _updateTotalScore(amount, expiry);
@@ -149,9 +148,14 @@ contract QubitLocker is IQubitLocker, WhitelistUpgradeable, ReentrancyGuardUpgra
 
         uint prevExpiry = expires[msg.sender];
         nextExpiry = truncateExpiry(nextExpiry);
-        require(Math.max(prevExpiry, block.timestamp) < nextExpiry && nextExpiry <= block.timestamp + LOCK_UNIT_MAX, 'QubitLocker: invalid expiry time');
+        require(
+            Math.max(prevExpiry, block.timestamp) < nextExpiry && nextExpiry <= block.timestamp + LOCK_UNIT_MAX,
+            "QubitLocker: invalid expiry time"
+        );
 
-        uint slopeChange = (_slopeChanges[prevExpiry] < amount.div(LOCK_UNIT_MAX)) ? _slopeChanges[prevExpiry] : amount.div(LOCK_UNIT_MAX);
+        uint slopeChange = (_slopeChanges[prevExpiry] < amount.div(LOCK_UNIT_MAX))
+            ? _slopeChanges[prevExpiry]
+            : amount.div(LOCK_UNIT_MAX);
         _slopeChanges[prevExpiry] = _slopeChanges[prevExpiry].sub(slopeChange);
         _slopeChanges[nextExpiry] = _slopeChanges[nextExpiry].add(slopeChange);
         _updateTotalScoreExtendingLock(amount, prevExpiry, nextExpiry);
@@ -173,11 +177,15 @@ contract QubitLocker is IQubitLocker, WhitelistUpgradeable, ReentrancyGuardUpgra
         QBT.safeTransfer(msg.sender, amount);
     }
 
-    function depositBehalf(address account, uint amount, uint expiry) external override onlyWhitelisted nonReentrant {
-        require(amount > 0, 'QubitLocker: invalid amount');
+    function depositBehalf(
+        address account,
+        uint amount,
+        uint expiry
+    ) external override onlyWhitelisted nonReentrant {
+        require(amount > 0, "QubitLocker: invalid amount");
 
         expiry = balances[account] == 0 ? truncateExpiry(expiry) : expires[account];
-        require(block.timestamp < expiry && expiry <= block.timestamp + LOCK_UNIT_MAX, 'QubitLocker: invalid expiry');
+        require(block.timestamp < expiry && expiry <= block.timestamp + LOCK_UNIT_MAX, "QubitLocker: invalid expiry");
 
         _slopeChanges[expiry] = _slopeChanges[expiry].add(amount.div(LOCK_UNIT_MAX));
         _updateTotalScore(amount, expiry);
@@ -218,7 +226,11 @@ contract QubitLocker is IQubitLocker, WhitelistUpgradeable, ReentrancyGuardUpgra
         _lastTimestamp = block.timestamp;
     }
 
-    function _updateTotalScoreExtendingLock(uint amount, uint prevExpiry, uint nextExpiry) private {
+    function _updateTotalScoreExtendingLock(
+        uint amount,
+        uint prevExpiry,
+        uint nextExpiry
+    ) private {
         (uint score, uint slope) = totalScore();
 
         uint deltaScore = nextExpiry.sub(prevExpiry).mul(amount.div(LOCK_UNIT_MAX));

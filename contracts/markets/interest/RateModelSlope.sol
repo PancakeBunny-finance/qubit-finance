@@ -38,7 +38,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../../interfaces/IRateModel.sol";
 
-
 contract RateModelSlope is IRateModel, OwnableUpgradeable {
     using SafeMath for uint;
 
@@ -51,7 +50,8 @@ contract RateModelSlope is IRateModel, OwnableUpgradeable {
         uint _baseRatePerYear,
         uint _slopePerYearFirst,
         uint _slopePerYearSecond,
-        uint _optimal) external initializer {
+        uint _optimal
+    ) external initializer {
         __Ownable_init();
 
         baseRatePerYear = _baseRatePerYear;
@@ -60,12 +60,20 @@ contract RateModelSlope is IRateModel, OwnableUpgradeable {
         optimal = _optimal;
     }
 
-    function utilizationRate(uint cash, uint borrows, uint reserves) public pure returns (uint) {
+    function utilizationRate(
+        uint cash,
+        uint borrows,
+        uint reserves
+    ) public pure returns (uint) {
         if (reserves >= cash.add(borrows)) return 0;
         return borrows.mul(1e18).div(cash.add(borrows).sub(reserves));
     }
 
-    function getBorrowRate(uint cash, uint borrows, uint reserves) public view override returns (uint) {
+    function getBorrowRate(
+        uint cash,
+        uint borrows,
+        uint reserves
+    ) public view override returns (uint) {
         uint utilization = utilizationRate(cash, borrows, reserves);
         if (optimal > 0 && utilization < optimal) {
             return baseRatePerYear.add(utilization.mul(slopePerYearFirst).div(optimal)).div(365 days);
@@ -75,7 +83,12 @@ contract RateModelSlope is IRateModel, OwnableUpgradeable {
         }
     }
 
-    function getSupplyRate(uint cash, uint borrows, uint reserves, uint reserveFactor) public view override returns (uint) {
+    function getSupplyRate(
+        uint cash,
+        uint borrows,
+        uint reserves,
+        uint reserveFactor
+    ) public view override returns (uint) {
         uint oneMinusReserveFactor = uint(1e18).sub(reserveFactor);
         uint borrowRate = getBorrowRate(cash, borrows, reserves);
         uint rateToPool = borrowRate.mul(oneMinusReserveFactor).div(1e18);

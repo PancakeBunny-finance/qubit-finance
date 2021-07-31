@@ -48,7 +48,6 @@ import "../interfaces/IQubitPresale.sol";
 import "../interfaces/IPriceCalculator.sol";
 import "../library/SafeToken.sol";
 
-
 contract QubitPresale is IQubitPresale, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeMath for uint;
     using SafeToken for address;
@@ -96,7 +95,12 @@ contract QubitPresale is IQubitPresale, OwnableUpgradeable, ReentrancyGuardUpgra
 
     /* ========== INITIALIZER ========== */
 
-    function initialize(uint _startTime, uint _endTime, uint _presaleAmountUSD, uint _qbtAmount) external initializer {
+    function initialize(
+        uint _startTime,
+        uint _endTime,
+        uint _presaleAmountUSD,
+        uint _qbtAmount
+    ) external initializer {
         __Ownable_init();
         __ReentrancyGuard_init();
 
@@ -113,11 +117,11 @@ contract QubitPresale is IQubitPresale, OwnableUpgradeable, ReentrancyGuardUpgra
 
     /* ========== VIEWS ========== */
 
-    function allocationOf(address _user) public override view returns (uint) {
+    function allocationOf(address _user) public view override returns (uint) {
         return totalBunnyBnbLp == 0 ? 0 : bunnyBnbLpOf[_user].mul(1e18).div(totalBunnyBnbLp);
     }
 
-    function refundOf(address _user) public override view returns (uint) {
+    function refundOf(address _user) public view override returns (uint) {
         uint lpPriceNow = lpPriceAtArchive;
         if (lpPriceAtArchive == 0) {
             (, lpPriceNow) = priceCalculator.valueOfAsset(BUNNY_WBNB_LP, 1e18);
@@ -131,7 +135,7 @@ contract QubitPresale is IQubitPresale, OwnableUpgradeable, ReentrancyGuardUpgra
         return bunnyBnbLpOf[_user].sub(lpAmountToPay);
     }
 
-    function accountListLength() external override view returns (uint) {
+    function accountListLength() external view override returns (uint) {
         return accountList.length;
     }
 
@@ -214,8 +218,19 @@ contract QubitPresale is IQubitPresale, OwnableUpgradeable, ReentrancyGuardUpgra
         (bunnyAmount, wbnbAmount) = router.removeLiquidity(BUNNY, WBNB, amount, 0, 0, address(this), block.timestamp);
         BUNNY.safeTransfer(DEAD, bunnyAmount);
 
-        uint qbtAmountFixed = presaleAmount < totalBunnyBnbLp ? qbtAmount : qbtAmount.mul(totalBunnyBnbLp).div(presaleAmount);
-        (,, qbtBnbLpAmount) = router.addLiquidity(QBT, WBNB, qbtAmountFixed, wbnbAmount, 0, 0, address(this), block.timestamp);
+        uint qbtAmountFixed = presaleAmount < totalBunnyBnbLp
+            ? qbtAmount
+            : qbtAmount.mul(totalBunnyBnbLp).div(presaleAmount);
+        (, , qbtBnbLpAmount) = router.addLiquidity(
+            QBT,
+            WBNB,
+            qbtAmountFixed,
+            wbnbAmount,
+            0,
+            0,
+            address(this),
+            block.timestamp
+        );
 
         archived = true;
     }
@@ -258,5 +273,4 @@ contract QubitPresale is IQubitPresale, OwnableUpgradeable, ReentrancyGuardUpgra
     }
 
     /* ========== PRIVATE FUNCTIONS ========== */
-
 }

@@ -36,13 +36,12 @@ pragma experimental ABIEncoderV2;
 */
 
 interface IQDistributor {
-
     struct UserInfo {
         uint accruedQubit;
-        uint boostedSupply;    // effective(boosted) supply balance of user  (since last_action)
-        uint boostedBorrow;    // effective(boosted) borrow balance of user  (since last_action)
-        uint accPerShareSupply;  // Last integral value of Qubit rewards per share. ∫(qubitRate(t) / totalShare(t) dt) from 0 till (last_action)
-        uint accPerShareBorrow;  // Last integral value of Qubit rewards per share. ∫(qubitRate(t) / totalShare(t) dt) from 0 till (last_action)
+        uint boostedSupply; // effective(boosted) supply balance of user  (since last_action)
+        uint boostedBorrow; // effective(boosted) borrow balance of user  (since last_action)
+        uint accPerShareSupply; // Last integral value of Qubit rewards per share. ∫(qubitRate(t) / totalShare(t) dt) from 0 till (last_action)
+        uint accPerShareBorrow; // Last integral value of Qubit rewards per share. ∫(qubitRate(t) / totalShare(t) dt) from 0 till (last_action)
     }
 
     struct DistributionInfo {
@@ -56,14 +55,27 @@ interface IQDistributor {
     }
 
     function accruedQubit(address market, address user) external view returns (uint);
+
     function qubitRatesOf(address market) external view returns (uint supplyRate, uint borrowRate);
+
     function totalBoosted(address market) external view returns (uint boostedSupply, uint boostedBorrow);
-    function boostedBalanceOf(address market, address account) external view returns (uint boostedSupply, uint boostedBorrow);
+
+    function boostedBalanceOf(address market, address account)
+        external
+        view
+        returns (uint boostedSupply, uint boostedBorrow);
 
     function notifySupplyUpdated(address market, address user) external;
+
     function notifyBorrowUpdated(address market, address user) external;
-    function notifyTransferred(address qToken, address sender, address receiver) external;
+
+    function notifyTransferred(
+        address qToken,
+        address sender,
+        address receiver
+    ) external;
+
     function claimQubit(address user) external;
+
     function kick(address user) external;
 }
-

@@ -36,16 +36,15 @@ pragma solidity ^0.6.12;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-
 contract WhitelistUpgradeable is OwnableUpgradeable {
-    mapping (address => bool) private _whitelist;
-    bool private _disable;                      // default - false means whitelist feature is working on. if true no more use of whitelist
+    mapping(address => bool) private _whitelist;
+    bool private _disable; // default - false means whitelist feature is working on. if true no more use of whitelist
 
     event Whitelisted(address indexed _address, bool whitelist);
     event EnableWhitelist();
     event DisableWhitelist();
 
-    modifier onlyWhitelisted {
+    modifier onlyWhitelisted() {
         require(_disable || _whitelist[msg.sender], "Whitelist: caller is not on the whitelist");
         _;
     }
@@ -54,7 +53,7 @@ contract WhitelistUpgradeable is OwnableUpgradeable {
         __Ownable_init();
     }
 
-    function isWhitelist(address _address) public view returns(bool) {
+    function isWhitelist(address _address) public view returns (bool) {
         return _whitelist[_address];
     }
 
@@ -73,5 +72,5 @@ contract WhitelistUpgradeable is OwnableUpgradeable {
         }
     }
 
-    uint256[49] private __gap;
+    uint[49] private __gap;
 }

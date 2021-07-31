@@ -46,7 +46,6 @@ import "../interfaces/IPancakePair.sol";
 import "../interfaces/IPancakeFactory.sol";
 import "../library/HomoraMath.sol";
 
-
 contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
     using SafeMath for uint;
     using HomoraMath for uint;
@@ -74,8 +73,8 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
 
     /* ========== MODIFIERS ========== */
 
-    modifier onlyKeeper {
-        require(msg.sender == keeper || msg.sender == owner(), 'Qore: caller is not the owner or keeper');
+    modifier onlyKeeper() {
+        require(msg.sender == keeper || msg.sender == owner(), "Qore: caller is not the owner or keeper");
         _;
     }
 
@@ -88,7 +87,7 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
     /* ========== RESTRICTED FUNCTIONS ========== */
 
     function setKeeper(address _keeper) external onlyKeeper {
-        require(_keeper != address(0), 'PriceCalculatorBSC: invalid keeper address');
+        require(_keeper != address(0), "PriceCalculatorBSC: invalid keeper address");
         keeper = _keeper;
     }
 
@@ -98,7 +97,7 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
 
     function setPrices(address[] memory assets, uint[] memory prices) external onlyKeeper {
         for (uint i = 0; i < assets.length; i++) {
-            references[assets[i]] = ReferenceData({lastData : prices[i], lastUpdated : block.timestamp});
+            references[assets[i]] = ReferenceData({ lastData: prices[i], lastUpdated: block.timestamp });
         }
     }
 
@@ -130,7 +129,7 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
     }
 
     function priceOfBNB() public view returns (uint) {
-        (, int price, , ,) = AggregatorV3Interface(tokenFeeds[WBNB]).latestRoundData();
+        (, int price, , , ) = AggregatorV3Interface(tokenFeeds[WBNB]).latestRoundData();
         return uint(price).mul(1e10);
     }
 
@@ -151,11 +150,10 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
         if (asset == address(0) || asset == WBNB) {
             valueInBNB = amount;
             valueInUSD = amount.mul(priceOfBNB()).div(1e18);
-        }
-        else if (keccak256(abi.encodePacked(IPancakePair(asset).symbol())) == keccak256("Cake-LP")) {
+        } else if (keccak256(abi.encodePacked(IPancakePair(asset).symbol())) == keccak256("Cake-LP")) {
             if (IPancakePair(asset).totalSupply() == 0) return (0, 0);
 
-            (uint reserve0, uint reserve1,) = IPancakePair(asset).getReserves();
+            (uint reserve0, uint reserve1, ) = IPancakePair(asset).getReserves();
             if (IPancakePair(asset).token0() == WBNB) {
                 valueInBNB = amount.mul(reserve0).mul(2).div(IPancakePair(asset).totalSupply());
                 valueInUSD = valueInBNB.mul(priceOfBNB()).div(1e18);
@@ -163,15 +161,17 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
                 valueInBNB = amount.mul(reserve1).mul(2).div(IPancakePair(asset).totalSupply());
                 valueInUSD = valueInBNB.mul(priceOfBNB()).div(1e18);
             } else {
-                (uint token0PriceInBNB,) = valueOfAsset(IPancakePair(asset).token0(), 1e18);
-                valueInBNB = amount.mul(reserve0).mul(2).mul(token0PriceInBNB).div(1e18).div(IPancakePair(asset).totalSupply());
+                (uint token0PriceInBNB, ) = valueOfAsset(IPancakePair(asset).token0(), 1e18);
+                valueInBNB = amount.mul(reserve0).mul(2).mul(token0PriceInBNB).div(1e18).div(
+                    IPancakePair(asset).totalSupply()
+                );
                 valueInUSD = valueInBNB.mul(priceOfBNB()).div(1e18);
             }
         } else {
             address pair = factory.getPair(asset, WBNB);
             if (IBEP20(asset).balanceOf(pair) == 0) return (0, 0);
 
-            (uint reserve0, uint reserve1,) = IPancakePair(pair).getReserves();
+            (uint reserve0, uint reserve1, ) = IPancakePair(pair).getReserves();
             if (IPancakePair(pair).token0() == WBNB) {
                 valueInBNB = reserve0.mul(amount).div(reserve1);
             } else if (IPancakePair(pair).token1() == WBNB) {
@@ -183,19 +183,18 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
         }
     }
 
-
     /* ========== PRIVATE FUNCTIONS ========== */
 
     function _getPairPrice(address pair, uint amount) private view returns (uint valueInBNB, uint valueInUSD) {
         address token0 = IPancakePair(pair).token0();
         address token1 = IPancakePair(pair).token1();
         uint totalSupply = IPancakePair(pair).totalSupply();
-        (uint r0, uint r1,) = IPancakePair(pair).getReserves();
+        (uint r0, uint r1, ) = IPancakePair(pair).getReserves();
 
         uint sqrtK = HomoraMath.sqrt(r0.mul(r1)).fdiv(totalSupply);
-        (uint px0,) = _oracleValueOf(token0, 1e18);
-        (uint px1,) = _oracleValueOf(token1, 1e18);
-        uint fairPriceInBNB = sqrtK.mul(2).mul(HomoraMath.sqrt(px0)).div(2 ** 56).mul(HomoraMath.sqrt(px1)).div(2 ** 56);
+        (uint px0, ) = _oracleValueOf(token0, 1e18);
+        (uint px1, ) = _oracleValueOf(token1, 1e18);
+        uint fairPriceInBNB = sqrtK.mul(2).mul(HomoraMath.sqrt(px0)).div(2**56).mul(HomoraMath.sqrt(px1)).div(2**56);
 
         valueInBNB = fairPriceInBNB.mul(amount).div(1e18);
         valueInUSD = valueInBNB.mul(priceOfBNB()).div(1e18);
@@ -204,7 +203,7 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
     function _oracleValueOf(address asset, uint amount) private view returns (uint valueInBNB, uint valueInUSD) {
         valueInUSD = 0;
         if (tokenFeeds[asset] != address(0)) {
-            (, int price, , ,) = AggregatorV3Interface(tokenFeeds[asset]).latestRoundData();
+            (, int price, , , ) = AggregatorV3Interface(tokenFeeds[asset]).latestRoundData();
             valueInUSD = uint(price).mul(1e10).mul(amount).div(1e18);
         } else if (references[asset].lastUpdated > block.timestamp.sub(1 days)) {
             valueInUSD = references[asset].lastData.mul(amount).div(1e18);

@@ -41,7 +41,6 @@ import "@pancakeswap/pancake-swap-lib/contracts/token/BEP20/IBEP20.sol";
 import "./library/WhitelistUpgradeable.sol";
 import "./library/SafeToken.sol";
 
-
 contract QubitReservoir is WhitelistUpgradeable {
     using SafeMath for uint;
     using SafeToken for address;
@@ -62,7 +61,13 @@ contract QubitReservoir is WhitelistUpgradeable {
 
     /* ========== INITIALIZER ========== */
 
-    function initialize(address _receiver, uint _ratePerSec, uint _ratePerSec2, uint _ratePerSec3, uint _startAt) external initializer {
+    function initialize(
+        address _receiver,
+        uint _ratePerSec,
+        uint _ratePerSec2,
+        uint _ratePerSec3,
+        uint _startAt
+    ) external initializer {
         __WhitelistUpgradeable_init();
 
         require(_receiver != address(0), "QubitReservoir: invalid receiver");
@@ -77,11 +82,18 @@ contract QubitReservoir is WhitelistUpgradeable {
 
     /* ========== VIEWS ========== */
 
-    function getDripInfo() external view returns (uint, uint, uint) {
+    function getDripInfo()
+        external
+        view
+        returns (
+            uint,
+            uint,
+            uint
+        )
+    {
         if (block.timestamp < startAt || block.timestamp.sub(startAt) <= 30 days) {
             return (startAt, ratePerSec, dripped);
-        }
-        else if (30 days < block.timestamp.sub(startAt) && block.timestamp.sub(startAt) <= 60 days) {
+        } else if (30 days < block.timestamp.sub(startAt) && block.timestamp.sub(startAt) <= 60 days) {
             return (startAt, ratePerSec2, dripped);
         } else {
             return (startAt, ratePerSec3, dripped);

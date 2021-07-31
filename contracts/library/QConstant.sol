@@ -34,7 +34,6 @@ pragma solidity ^0.6.12;
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 */
 
-
 library QConstant {
     uint public constant CLOSE_FACTOR_MIN = 5e16;
     uint public constant CLOSE_FACTOR_MAX = 9e17;

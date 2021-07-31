@@ -5,7 +5,6 @@ pragma experimental ABIEncoderV2;
 import "../library/QConstant.sol";
 
 interface IDashboard {
-
     struct LockerData {
         uint totalLocked;
         uint locked;
@@ -53,5 +52,8 @@ interface IDashboard {
         uint borrowUSD;
     }
 
-    function statusOf(address account, address[] memory markets) external view returns (LockerData memory, MarketData[] memory);
+    function statusOf(address account, address[] memory markets)
+        external
+        view
+        returns (LockerData memory, MarketData[] memory);
 }

@@ -44,7 +44,6 @@ import "../interfaces/IQToken.sol";
 import "../interfaces/IQore.sol";
 import "../library/QConstant.sol";
 
-
 contract QValidator is IQValidator, OwnableUpgradeable {
     using SafeMath for uint;
 
@@ -64,7 +63,12 @@ contract QValidator is IQValidator, OwnableUpgradeable {
 
     /* ========== VIEWS ========== */
 
-    function getAccountLiquidity(address account, address qToken, uint redeemAmount, uint borrowAmount) external view override returns (uint liquidity, uint shortfall) {
+    function getAccountLiquidity(
+        address account,
+        address qToken,
+        uint redeemAmount,
+        uint borrowAmount
+    ) external view override returns (uint liquidity, uint shortfall) {
         uint accCollateralValueInUSD;
         uint accBorrowValueInUSD;
 
@@ -74,8 +78,14 @@ contract QValidator is IQValidator, OwnableUpgradeable {
             require(prices[i] != 0, "QValidator: price error");
             QConstant.AccountSnapshot memory snapshot = IQToken(payable(assets[i])).accountSnapshot(account);
 
-            uint collateralValuePerShareInUSD = snapshot.exchangeRate.mul(prices[i]).mul(qore.marketInfoOf(payable(assets[i])).collateralFactor).div(1e36);
-            accCollateralValueInUSD = accCollateralValueInUSD.add(snapshot.qTokenBalance.mul(collateralValuePerShareInUSD).div(1e18));
+            uint collateralValuePerShareInUSD = snapshot
+                .exchangeRate
+                .mul(prices[i])
+                .mul(qore.marketInfoOf(payable(assets[i])).collateralFactor)
+                .div(1e36);
+            accCollateralValueInUSD = accCollateralValueInUSD.add(
+                snapshot.qTokenBalance.mul(collateralValuePerShareInUSD).div(1e18)
+            );
             accBorrowValueInUSD = accBorrowValueInUSD.add(snapshot.borrowBalance.mul(prices[i]).div(1e18));
 
             if (assets[i] == qToken) {
@@ -84,11 +94,20 @@ contract QValidator is IQValidator, OwnableUpgradeable {
             }
         }
 
-        liquidity = accCollateralValueInUSD > accBorrowValueInUSD ? accCollateralValueInUSD.sub(accBorrowValueInUSD) : 0;
-        shortfall = accCollateralValueInUSD > accBorrowValueInUSD ? 0 : accBorrowValueInUSD.sub(accCollateralValueInUSD);
+        liquidity = accCollateralValueInUSD > accBorrowValueInUSD
+            ? accCollateralValueInUSD.sub(accBorrowValueInUSD)
+            : 0;
+        shortfall = accCollateralValueInUSD > accBorrowValueInUSD
+            ? 0
+            : accBorrowValueInUSD.sub(accCollateralValueInUSD);
     }
 
-    function getAccountLiquidityValue(address account) external view override returns (uint collateralUSD, uint borrowUSD) {
+    function getAccountLiquidityValue(address account)
+        external
+        view
+        override
+        returns (uint collateralUSD, uint borrowUSD)
+    {
         address[] memory assets = qore.marketListOf(account);
         uint[] memory prices = oracle.getUnderlyingPrices(assets);
         collateralUSD = 0;
@@ -97,7 +116,11 @@ contract QValidator is IQValidator, OwnableUpgradeable {
             require(prices[i] != 0, "QValidator: price error");
             QConstant.AccountSnapshot memory snapshot = IQToken(payable(assets[i])).accountSnapshot(account);
 
-            uint collateralValuePerShareInUSD = snapshot.exchangeRate.mul(prices[i]).mul(qore.marketInfoOf(payable(assets[i])).collateralFactor).div(1e36);
+            uint collateralValuePerShareInUSD = snapshot
+                .exchangeRate
+                .mul(prices[i])
+                .mul(qore.marketInfoOf(payable(assets[i])).collateralFactor)
+                .div(1e36);
             collateralUSD = collateralUSD.add(snapshot.qTokenBalance.mul(collateralValuePerShareInUSD).div(1e18));
             borrowUSD = borrowUSD.add(snapshot.borrowBalance.mul(prices[i]).div(1e18));
         }
@@ -112,12 +135,20 @@ contract QValidator is IQValidator, OwnableUpgradeable {
 
     /* ========== ALLOWED FUNCTIONS ========== */
 
-    function redeemAllowed(address qToken, address redeemer, uint redeemAmount) external override returns (bool) {
+    function redeemAllowed(
+        address qToken,
+        address redeemer,
+        uint redeemAmount
+    ) external override returns (bool) {
         (, uint shortfall) = _getAccountLiquidityInternal(redeemer, qToken, redeemAmount, 0);
         return shortfall == 0;
     }
 
-    function borrowAllowed(address qToken, address borrower, uint borrowAmount) external override returns (bool) {
+    function borrowAllowed(
+        address qToken,
+        address borrower,
+        uint borrowAmount
+    ) external override returns (bool) {
         require(oracle.getUnderlyingPrice(address(qToken)) > 0, "QValidator: Underlying price error");
 
         // Borrow cap of 0 corresponds to unlimited borrowing
@@ -132,7 +163,12 @@ contract QValidator is IQValidator, OwnableUpgradeable {
         return shortfall == 0;
     }
 
-    function liquidateAllowed(address qToken, address borrower, uint liquidateAmount, uint closeFactor) external override returns (bool) {
+    function liquidateAllowed(
+        address qToken,
+        address borrower,
+        uint liquidateAmount,
+        uint closeFactor
+    ) external override returns (bool) {
         // The borrower must have shortfall in order to be liquidate
         (, uint shortfall) = _getAccountLiquidityInternal(borrower, address(0), 0, 0);
         require(shortfall != 0, "QValidator: Insufficient shortfall");
@@ -143,7 +179,11 @@ contract QValidator is IQValidator, OwnableUpgradeable {
         return liquidateAmount <= maxClose;
     }
 
-    function qTokenAmountToSeize(address qTokenBorrowed, address qTokenCollateral, uint amount) external override returns (uint seizeQAmount) {
+    function qTokenAmountToSeize(
+        address qTokenBorrowed,
+        address qTokenCollateral,
+        uint amount
+    ) external override returns (uint seizeQAmount) {
         uint priceBorrowed = oracle.getUnderlyingPrice(qTokenBorrowed);
         uint priceCollateral = oracle.getUnderlyingPrice(qTokenCollateral);
         require(priceBorrowed != 0 && priceCollateral != 0, "QValidator: price error");
@@ -157,7 +197,12 @@ contract QValidator is IQValidator, OwnableUpgradeable {
 
     /* ========== PRIVATE FUNCTIONS ========== */
 
-    function _getAccountLiquidityInternal(address account, address qToken, uint redeemAmount, uint borrowAmount) private returns (uint liquidity, uint shortfall) {
+    function _getAccountLiquidityInternal(
+        address account,
+        address qToken,
+        uint redeemAmount,
+        uint borrowAmount
+    ) private returns (uint liquidity, uint shortfall) {
         uint accCollateralValueInUSD;
         uint accBorrowValueInUSD;
 
@@ -167,8 +212,14 @@ contract QValidator is IQValidator, OwnableUpgradeable {
             require(prices[i] != 0, "QValidator: price error");
             QConstant.AccountSnapshot memory snapshot = IQToken(payable(assets[i])).accruedAccountSnapshot(account);
 
-            uint collateralValuePerShareInUSD = snapshot.exchangeRate.mul(prices[i]).mul(qore.marketInfoOf(payable(assets[i])).collateralFactor).div(1e36);
-            accCollateralValueInUSD = accCollateralValueInUSD.add(snapshot.qTokenBalance.mul(collateralValuePerShareInUSD).div(1e18));
+            uint collateralValuePerShareInUSD = snapshot
+                .exchangeRate
+                .mul(prices[i])
+                .mul(qore.marketInfoOf(payable(assets[i])).collateralFactor)
+                .div(1e36);
+            accCollateralValueInUSD = accCollateralValueInUSD.add(
+                snapshot.qTokenBalance.mul(collateralValuePerShareInUSD).div(1e18)
+            );
             accBorrowValueInUSD = accBorrowValueInUSD.add(snapshot.borrowBalance.mul(prices[i]).div(1e18));
 
             if (assets[i] == qToken) {
@@ -177,7 +228,11 @@ contract QValidator is IQValidator, OwnableUpgradeable {
             }
         }
 
-        liquidity = accCollateralValueInUSD > accBorrowValueInUSD ? accCollateralValueInUSD.sub(accBorrowValueInUSD) : 0;
-        shortfall = accCollateralValueInUSD > accBorrowValueInUSD ? 0 : accBorrowValueInUSD.sub(accCollateralValueInUSD);
+        liquidity = accCollateralValueInUSD > accBorrowValueInUSD
+            ? accCollateralValueInUSD.sub(accBorrowValueInUSD)
+            : 0;
+        shortfall = accCollateralValueInUSD > accBorrowValueInUSD
+            ? 0
+            : accBorrowValueInUSD.sub(accCollateralValueInUSD);
     }
 }

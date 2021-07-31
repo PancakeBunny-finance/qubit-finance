@@ -6,23 +6,26 @@ import "@pancakeswap/pancake-swap-lib/contracts/token/BEP20/IBEP20.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-
 abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
     using SafeMath for uint;
 
-    mapping (address => uint256) private _balances;
-    mapping (address => mapping (address => uint256)) private _allowances;
-    uint256 private _totalSupply;
+    mapping(address => uint) private _balances;
+    mapping(address => mapping(address => uint)) private _allowances;
+    uint private _totalSupply;
     string private _name;
     string private _symbol;
     uint8 private _decimals;
 
-    uint256[50] private __gap;
+    uint[50] private __gap;
 
     /**
      * @dev sets initials supply and the owner
      */
-    function __BEP20__init(string memory name, string memory symbol, uint8 decimals) internal initializer {
+    function __BEP20__init(
+        string memory name,
+        string memory symbol,
+        uint8 decimals
+    ) internal initializer {
         __Ownable_init();
         _name = name;
         _symbol = symbol;
@@ -32,42 +35,42 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
     /**
      * @dev Returns the bep token owner.
      */
-    function getOwner() external override view returns (address) {
+    function getOwner() external view override returns (address) {
         return owner();
     }
 
     /**
      * @dev Returns the token decimals.
      */
-    function decimals() external override view returns (uint8) {
+    function decimals() external view override returns (uint8) {
         return _decimals;
     }
 
     /**
      * @dev Returns the token symbol.
      */
-    function symbol() external override view returns (string memory) {
+    function symbol() external view override returns (string memory) {
         return _symbol;
     }
 
     /**
-    * @dev Returns the token name.
-    */
-    function name() external override view returns (string memory) {
+     * @dev Returns the token name.
+     */
+    function name() external view override returns (string memory) {
         return _name;
     }
 
     /**
      * @dev See {BEP20-totalSupply}.
      */
-    function totalSupply() public override view returns (uint256) {
+    function totalSupply() public view override returns (uint) {
         return _totalSupply;
     }
 
     /**
      * @dev See {BEP20-balanceOf}.
      */
-    function balanceOf(address account) public override view returns (uint256) {
+    function balanceOf(address account) public view override returns (uint) {
         return _balances[account];
     }
 
@@ -79,7 +82,7 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) external override returns (bool) {
+    function transfer(address recipient, uint amount) external override returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -87,7 +90,7 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
     /**
      * @dev See {BEP20-allowance}.
      */
-    function allowance(address owner, address spender) external override view returns (uint256) {
+    function allowance(address owner, address spender) external view override returns (uint) {
         return _allowances[owner][spender];
     }
 
@@ -98,7 +101,7 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount) external override returns (bool) {
+    function approve(address spender, uint amount) external override returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
@@ -115,9 +118,17 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
      * - the caller must have allowance for `sender`'s tokens of at least
      * `amount`.
      */
-    function transferFrom(address sender, address recipient, uint256 amount) external override returns (bool) {
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint amount
+    ) external override returns (bool) {
         _transfer(sender, recipient, amount);
-        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "BEP20: transfer amount exceeds allowance"));
+        _approve(
+            sender,
+            _msgSender(),
+            _allowances[sender][_msgSender()].sub(amount, "BEP20: transfer amount exceeds allowance")
+        );
         return true;
     }
 
@@ -133,7 +144,7 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
+    function increaseAllowance(address spender, uint addedValue) public returns (bool) {
         _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
         return true;
     }
@@ -152,15 +163,19 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "BEP20: decreased allowance below zero"));
+    function decreaseAllowance(address spender, uint subtractedValue) public returns (bool) {
+        _approve(
+            _msgSender(),
+            spender,
+            _allowances[_msgSender()][spender].sub(subtractedValue, "BEP20: decreased allowance below zero")
+        );
         return true;
     }
 
     /**
-   * @dev Burn `amount` tokens and decreasing the total supply.
-   */
-    function burn(uint256 amount) public returns (bool) {
+     * @dev Burn `amount` tokens and decreasing the total supply.
+     */
+    function burn(uint amount) public returns (bool) {
         _burn(_msgSender(), amount);
         return true;
     }
@@ -179,7 +194,11 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
      * - `recipient` cannot be the zero address.
      * - `sender` must have a balance of at least `amount`.
      */
-    function _transfer(address sender, address recipient, uint256 amount) internal {
+    function _transfer(
+        address sender,
+        address recipient,
+        uint amount
+    ) internal {
         require(sender != address(0), "BEP20: transfer from the zero address");
         require(recipient != address(0), "BEP20: transfer to the zero address");
 
@@ -197,7 +216,7 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
      *
      * - `to` cannot be the zero address.
      */
-    function _mint(address account, uint256 amount) internal {
+    function _mint(address account, uint amount) internal {
         require(account != address(0), "BEP20: mint to the zero address");
 
         _totalSupply = _totalSupply.add(amount);
@@ -216,7 +235,7 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
      */
-    function _burn(address account, uint256 amount) internal {
+    function _burn(address account, uint amount) internal {
         require(account != address(0), "BEP20: burn from the zero address");
 
         _balances[account] = _balances[account].sub(amount, "BEP20: burn amount exceeds balance");
@@ -237,7 +256,11 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
      * - `owner` cannot be the zero address.
      * - `spender` cannot be the zero address.
      */
-    function _approve(address owner, address spender, uint256 amount) internal {
+    function _approve(
+        address owner,
+        address spender,
+        uint amount
+    ) internal {
         require(owner != address(0), "BEP20: approve from the zero address");
         require(spender != address(0), "BEP20: approve to the zero address");
 
@@ -251,8 +274,12 @@ abstract contract BEP20Upgradeable is IBEP20, OwnableUpgradeable {
      *
      * See {_burn} and {_approve}.
      */
-    function _burnFrom(address account, uint256 amount) internal {
+    function _burnFrom(address account, uint amount) internal {
         _burn(account, amount);
-        _approve(account, _msgSender(), _allowances[account][_msgSender()].sub(amount, "BEP20: burn amount exceeds allowance"));
+        _approve(
+            account,
+            _msgSender(),
+            _allowances[account][_msgSender()].sub(amount, "BEP20: burn amount exceeds allowance")
+        );
     }
 }

@@ -47,7 +47,6 @@ import "./interfaces/IQubitLocker.sol";
 import "./interfaces/IQToken.sol";
 import "./interfaces/IQore.sol";
 
-
 contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpgradeable {
     using SafeMath for uint;
     using SafeToken for address;
@@ -56,8 +55,8 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
 
     address private constant QBT = 0x17B7163cf1Dbd286E262ddc68b553D899B93f526;
 
-    uint constant public BOOST_PORTION_Q = 60;
-    uint constant public BOOST_PORTION_MAX = 100;
+    uint public constant BOOST_PORTION_Q = 60;
+    uint public constant BOOST_PORTION_MAX = 100;
 
     IQore public constant qore = IQore(0x21824518e7E443812586c96aB5B05E9F91831E06);
     IQubitLocker public constant qubitLocker = IQubitLocker(0xB8243be1D145a528687479723B394485cE3cE773);
@@ -78,23 +77,27 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         uint timeElapsed = block.timestamp > dist.accruedAt ? block.timestamp.sub(dist.accruedAt) : 0;
         if (timeElapsed > 0) {
             if (dist.totalBoostedSupply > 0) {
-                dist.accPerShareSupply = dist.accPerShareSupply.add(dist.supplyRate.mul(timeElapsed).mul(1e18).div(dist.totalBoostedSupply));
+                dist.accPerShareSupply = dist.accPerShareSupply.add(
+                    dist.supplyRate.mul(timeElapsed).mul(1e18).div(dist.totalBoostedSupply)
+                );
             }
 
             if (dist.totalBoostedBorrow > 0) {
-                dist.accPerShareBorrow = dist.accPerShareBorrow.add(dist.borrowRate.mul(timeElapsed).mul(1e18).div(dist.totalBoostedBorrow));
+                dist.accPerShareBorrow = dist.accPerShareBorrow.add(
+                    dist.borrowRate.mul(timeElapsed).mul(1e18).div(dist.totalBoostedBorrow)
+                );
             }
         }
         dist.accruedAt = block.timestamp;
         _;
     }
 
-    modifier onlyQore {
+    modifier onlyQore() {
         require(msg.sender == address(qore), "QDistributor: caller is not Qore");
         _;
     }
 
-    modifier onlyMarket {
+    modifier onlyMarket() {
         bool fromMarket = false;
         address[] memory markets = qore.allMarkets();
         for (uint i = 0; i < markets.length; i++) {
@@ -135,16 +138,24 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         uint timeElapsed = block.timestamp > dist.accruedAt ? block.timestamp.sub(dist.accruedAt) : 0;
         if (timeElapsed > 0) {
             if (dist.totalBoostedSupply > 0) {
-                accPerShareSupply = accPerShareSupply.add(dist.supplyRate.mul(timeElapsed).mul(1e18).div(dist.totalBoostedSupply));
+                accPerShareSupply = accPerShareSupply.add(
+                    dist.supplyRate.mul(timeElapsed).mul(1e18).div(dist.totalBoostedSupply)
+                );
 
-                uint pendingQubit = userInfo.boostedSupply.mul(accPerShareSupply.sub(userInfo.accPerShareSupply)).div(1e18);
+                uint pendingQubit = userInfo.boostedSupply.mul(accPerShareSupply.sub(userInfo.accPerShareSupply)).div(
+                    1e18
+                );
                 _accruedQubit = _accruedQubit.add(pendingQubit);
             }
 
             if (dist.totalBoostedBorrow > 0) {
-                accPerShareBorrow = accPerShareBorrow.add(dist.borrowRate.mul(timeElapsed).mul(1e18).div(dist.totalBoostedBorrow));
+                accPerShareBorrow = accPerShareBorrow.add(
+                    dist.borrowRate.mul(timeElapsed).mul(1e18).div(dist.totalBoostedBorrow)
+                );
 
-                uint pendingQubit = userInfo.boostedBorrow.mul(accPerShareBorrow.sub(userInfo.accPerShareBorrow)).div(1e18);
+                uint pendingQubit = userInfo.boostedBorrow.mul(accPerShareBorrow.sub(userInfo.accPerShareBorrow)).div(
+                    1e18
+                );
                 _accruedQubit = _accruedQubit.add(pendingQubit);
             }
         }
@@ -159,13 +170,22 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         return (distributions[market].totalBoostedSupply, distributions[market].totalBoostedBorrow);
     }
 
-    function boostedBalanceOf(address market, address account) external view override returns (uint boostedSupply, uint boostedBorrow) {
+    function boostedBalanceOf(address market, address account)
+        external
+        view
+        override
+        returns (uint boostedSupply, uint boostedBorrow)
+    {
         return (marketUsers[market][account].boostedSupply, marketUsers[market][account].boostedBorrow);
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function setQubitDistributionRates(address qToken, uint supplyRate, uint borrowRate) external onlyOwner updateDistributionOf(qToken) {
+    function setQubitDistributionRates(
+        address qToken,
+        uint supplyRate,
+        uint borrowRate
+    ) external onlyOwner updateDistributionOf(qToken) {
         DistributionInfo storage dist = distributions[qToken];
         dist.supplyRate = supplyRate;
         dist.borrowRate = borrowRate;
@@ -174,7 +194,13 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function notifySupplyUpdated(address market, address user) external override nonReentrant onlyQore updateDistributionOf(market) {
+    function notifySupplyUpdated(address market, address user)
+        external
+        override
+        nonReentrant
+        onlyQore
+        updateDistributionOf(market)
+    {
         DistributionInfo storage dist = distributions[market];
         UserInfo storage userInfo = marketUsers[market][user];
 
@@ -189,7 +215,13 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         userInfo.boostedSupply = boostedSupply;
     }
 
-    function notifyBorrowUpdated(address market, address user) external override nonReentrant onlyQore updateDistributionOf(market) {
+    function notifyBorrowUpdated(address market, address user)
+        external
+        override
+        nonReentrant
+        onlyQore
+        updateDistributionOf(market)
+    {
         DistributionInfo storage dist = distributions[market];
         UserInfo storage userInfo = marketUsers[market][user];
 
@@ -203,27 +235,40 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         dist.totalBoostedBorrow = dist.totalBoostedBorrow.add(boostedBorrow).sub(userInfo.boostedBorrow);
         userInfo.boostedBorrow = boostedBorrow;
     }
-    
-    function notifyTransferred(address qToken, address sender, address receiver) external override nonReentrant onlyMarket updateDistributionOf(qToken) {
+
+    function notifyTransferred(
+        address qToken,
+        address sender,
+        address receiver
+    ) external override nonReentrant onlyMarket updateDistributionOf(qToken) {
         DistributionInfo storage dist = distributions[qToken];
         UserInfo storage senderInfo = marketUsers[qToken][sender];
         UserInfo storage receiverInfo = marketUsers[qToken][receiver];
 
         if (senderInfo.boostedSupply > 0) {
             uint accQubitPerShare = dist.accPerShareSupply.sub(senderInfo.accPerShareSupply);
-            senderInfo.accruedQubit = senderInfo.accruedQubit.add(accQubitPerShare.mul(senderInfo.boostedSupply).div(1e18));
+            senderInfo.accruedQubit = senderInfo.accruedQubit.add(
+                accQubitPerShare.mul(senderInfo.boostedSupply).div(1e18)
+            );
         }
         senderInfo.accPerShareSupply = dist.accPerShareSupply;
 
         if (receiverInfo.boostedSupply > 0) {
             uint accQubitPerShare = dist.accPerShareSupply.sub(receiverInfo.accPerShareSupply);
-            receiverInfo.accruedQubit = receiverInfo.accruedQubit.add(accQubitPerShare.mul(receiverInfo.boostedSupply).div(1e18));
+            receiverInfo.accruedQubit = receiverInfo.accruedQubit.add(
+                accQubitPerShare.mul(receiverInfo.boostedSupply).div(1e18)
+            );
         }
         receiverInfo.accPerShareSupply = dist.accPerShareSupply;
 
         uint boostedSenderSupply = _calculateBoostedSupply(qToken, sender);
         uint boostedReceiverSupply = _calculateBoostedSupply(qToken, receiver);
-        dist.totalBoostedSupply = dist.totalBoostedSupply.add(boostedSenderSupply).add(boostedReceiverSupply).sub(senderInfo.boostedSupply).sub(receiverInfo.boostedSupply);
+        dist.totalBoostedSupply = dist
+            .totalBoostedSupply
+            .add(boostedSenderSupply)
+            .add(boostedReceiverSupply)
+            .sub(senderInfo.boostedSupply)
+            .sub(receiverInfo.boostedSupply);
         senderInfo.boostedSupply = boostedSenderSupply;
         receiverInfo.boostedSupply = boostedReceiverSupply;
     }
@@ -264,10 +309,8 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
     function _claimQubit(address market, address user) private returns (uint _accruedQubit) {
         bool hasBoostedSupply = marketUsers[market][user].boostedSupply > 0;
         bool hasBoostedBorrow = marketUsers[market][user].boostedBorrow > 0;
-        if (hasBoostedSupply)
-            _updateSupplyOf(market, user);
-        if (hasBoostedBorrow)
-            _updateBorrowOf(market, user);
+        if (hasBoostedSupply) _updateSupplyOf(market, user);
+        if (hasBoostedBorrow) _updateBorrowOf(market, user);
 
         if (hasBoostedSupply || hasBoostedBorrow) {
             UserInfo storage userInfo = marketUsers[market][user];
@@ -289,9 +332,11 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         uint boostedSupply = defaultSupply.mul(BOOST_PORTION_MAX - BOOST_PORTION_Q).div(BOOST_PORTION_MAX);
 
         uint userScore = qubitLocker.scoreOf(user);
-        (uint totalScore,) = qubitLocker.totalScore();
+        (uint totalScore, ) = qubitLocker.totalScore();
         if (userScore > 0 && totalScore > 0) {
-            uint scoreBoosted = IQToken(market).totalSupply().mul(userScore).div(totalScore).mul(BOOST_PORTION_Q).div(100);
+            uint scoreBoosted = IQToken(market).totalSupply().mul(userScore).div(totalScore).mul(BOOST_PORTION_Q).div(
+                100
+            );
             boostedSupply = boostedSupply.add(scoreBoosted);
         }
         return Math.min(boostedSupply, defaultSupply);
@@ -303,7 +348,7 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         uint boostedBorrow = defaultBorrow.mul(BOOST_PORTION_MAX - BOOST_PORTION_Q).div(BOOST_PORTION_MAX);
 
         uint userScore = qubitLocker.scoreOf(user);
-        (uint totalScore,) = qubitLocker.totalScore();
+        (uint totalScore, ) = qubitLocker.totalScore();
         if (userScore > 0 && totalScore > 0) {
             uint totalBorrow = IQToken(market).totalBorrow().mul(1e18).div(accInterestIndex);
             uint scoreBoosted = totalBorrow.mul(userScore).div(totalScore).mul(BOOST_PORTION_Q).div(100);
@@ -342,5 +387,3 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         userInfo.boostedBorrow = boostedBorrow;
     }
 }
-
-

@@ -42,7 +42,6 @@ import "./library/WhitelistUpgradeable.sol";
 import "./library/SafeToken.sol";
 import "./interfaces/IQubitLocker.sol";
 
-
 contract QubitDevReservoir is WhitelistUpgradeable {
     using SafeMath for uint;
     using SafeToken for address;
@@ -50,7 +49,6 @@ contract QubitDevReservoir is WhitelistUpgradeable {
     /* ========== CONSTANT VARIABLES ========== */
 
     address internal constant QBT = 0x17B7163cf1Dbd286E262ddc68b553D899B93f526;
-
 
     /* ========== STATE VARIABLES ========== */
 
@@ -63,7 +61,11 @@ contract QubitDevReservoir is WhitelistUpgradeable {
 
     /* ========== INITIALIZER ========== */
 
-    function initialize(address _receiver, uint _ratePerSec, uint _startAt) external initializer {
+    function initialize(
+        address _receiver,
+        uint _ratePerSec,
+        uint _startAt
+    ) external initializer {
         __WhitelistUpgradeable_init();
 
         require(_receiver != address(0), "QubitDevReservoir: invalid receiver");
@@ -79,12 +81,20 @@ contract QubitDevReservoir is WhitelistUpgradeable {
     function setLocker(address _qubitLocker) external onlyOwner {
         require(_qubitLocker != address(0), "QubitDevReservoir: invalid locker address");
         qubitLocker = IQubitLocker(_qubitLocker);
-        IBEP20(QBT).approve(_qubitLocker, uint(- 1));
+        IBEP20(QBT).approve(_qubitLocker, uint(-1));
     }
 
     /* ========== VIEWS ========== */
 
-    function getDripInfo() external view returns (uint, uint, uint) {
+    function getDripInfo()
+        external
+        view
+        returns (
+            uint,
+            uint,
+            uint
+        )
+    {
         return (startAt, ratePerSec, dripped);
     }
 
@@ -112,8 +122,7 @@ contract QubitDevReservoir is WhitelistUpgradeable {
         if (qubitLocker.expiryOf(receiver) > block.timestamp) {
             qubitLocker.depositBehalf(receiver, amountToDrip, 0);
             return amountToDrip;
-        }
-        else {
+        } else {
             qubitLocker.depositBehalf(receiver, amountToDrip, block.timestamp + 365 days * 2);
             return amountToDrip;
         }

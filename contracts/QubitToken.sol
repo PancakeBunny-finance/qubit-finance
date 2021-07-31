@@ -36,16 +36,14 @@ pragma solidity ^0.6.12;
 
 import "./library/BEP20Upgradeable.sol";
 
-
 contract QubitToken is BEP20Upgradeable {
-
     /* ========== STATE VARIABLES ========== */
 
     mapping(address => bool) private _minters;
 
     /* ========== MODIFIERS ========== */
 
-    modifier onlyMinter {
+    modifier onlyMinter() {
         require(msg.sender != address(0) && isMinter(msg.sender), "QBT: caller is not the minter");
         _;
     }

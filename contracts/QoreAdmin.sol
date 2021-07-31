@@ -39,12 +39,10 @@ import "./interfaces/IQore.sol";
 import "./interfaces/IQDistributor.sol";
 import "./interfaces/IPriceCalculator.sol";
 import "./library/WhitelistUpgradeable.sol";
-import {QConstant} from "./library/QConstant.sol";
+import { QConstant } from "./library/QConstant.sol";
 import "./interfaces/IQToken.sol";
 
-
 abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
-
     /* ========== CONSTANT VARIABLES ========== */
 
     IPriceCalculator public constant priceCalculator = IPriceCalculator(0x20E5E35ba29dC3B540a1aee781D0814D5c77Bce6);
@@ -74,8 +72,8 @@ abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
 
     /* ========== MODIFIERS ========== */
 
-    modifier onlyKeeper {
-        require(msg.sender == keeper || msg.sender == owner(), 'Qore: caller is not the owner or keeper');
+    modifier onlyKeeper() {
+        require(msg.sender == keeper || msg.sender == owner(), "Qore: caller is not the owner or keeper");
         _;
     }
 
@@ -111,12 +109,19 @@ abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
     }
 
     function setCloseFactor(uint newCloseFactor) external onlyKeeper {
-        require(newCloseFactor >= QConstant.CLOSE_FACTOR_MIN && newCloseFactor <= QConstant.CLOSE_FACTOR_MAX, "Qore: invalid close factor");
+        require(
+            newCloseFactor >= QConstant.CLOSE_FACTOR_MIN && newCloseFactor <= QConstant.CLOSE_FACTOR_MAX,
+            "Qore: invalid close factor"
+        );
         closeFactor = newCloseFactor;
         emit CloseFactorUpdated(newCloseFactor);
     }
 
-    function setCollateralFactor(address qToken, uint newCollateralFactor) external onlyKeeper onlyListedMarket(qToken) {
+    function setCollateralFactor(address qToken, uint newCollateralFactor)
+        external
+        onlyKeeper
+        onlyListedMarket(qToken)
+    {
         require(newCollateralFactor <= QConstant.COLLATERAL_FACTOR_MAX, "Qore: invalid collateral factor");
         if (newCollateralFactor != 0 && priceCalculator.getUnderlyingPrice(qToken) == 0) {
             revert("Qore: invalid underlying price");
@@ -140,13 +145,21 @@ abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
         }
     }
 
-    function listMarket(address payable qToken, uint borrowCap, uint collateralFactor) external onlyKeeper {
+    function listMarket(
+        address payable qToken,
+        uint borrowCap,
+        uint collateralFactor
+    ) external onlyKeeper {
         require(!marketInfos[qToken].isListed, "Qore: already listed market");
-        for (uint i = 0; i < markets.length; i ++) {
+        for (uint i = 0; i < markets.length; i++) {
             require(markets[i] != qToken, "Qore: already listed market");
         }
 
-        marketInfos[qToken] = QConstant.MarketInfo({isListed : true, borrowCap : borrowCap, collateralFactor : collateralFactor});
+        marketInfos[qToken] = QConstant.MarketInfo({
+            isListed: true,
+            borrowCap: borrowCap,
+            collateralFactor: collateralFactor
+        });
         markets.push(qToken);
         emit MarketListed(qToken);
     }
