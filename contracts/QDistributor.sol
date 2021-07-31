@@ -104,6 +104,7 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         for (uint i = 0; i < markets.length; i++) {
             if (msg.sender == markets[i]) {
                 fromMarket = true;
+                break;
             }
         }
         require(fromMarket == true, "QDistributor: caller should be market");
