@@ -314,11 +314,9 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         if (hasBoostedSupply) _updateSupplyOf(market, user);
         if (hasBoostedBorrow) _updateBorrowOf(market, user);
 
-        if (hasBoostedSupply || hasBoostedBorrow) {
-            UserInfo storage userInfo = marketUsers[market][user];
-            _accruedQubit = _accruedQubit.add(userInfo.accruedQubit);
-            userInfo.accruedQubit = 0;
-        }
+        UserInfo storage userInfo = marketUsers[market][user];
+        _accruedQubit = _accruedQubit.add(userInfo.accruedQubit);
+        userInfo.accruedQubit = 0;
 
         return _accruedQubit;
     }
