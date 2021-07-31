@@ -90,7 +90,7 @@ contract QubitReservoir is WhitelistUpgradeable {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function drip() public returns (uint) {
+    function drip() public onlyOwner returns (uint) {
         require(block.timestamp >= startAt, "QubitReservoir: not started");
 
         uint balance = IBEP20(QBT).balanceOf(address(this));
@@ -110,5 +110,10 @@ contract QubitReservoir is WhitelistUpgradeable {
         dripped = dripped.add(amountToDrip);
         QBT.safeTransfer(receiver, amountToDrip);
         return amountToDrip;
+    }
+
+    function setStartAt(uint _startAt) public onlyOwner {
+        require(startAt <= _startAt, "QubitReservoir: invalid startAt");
+        startAt = _startAt;
     }
 }

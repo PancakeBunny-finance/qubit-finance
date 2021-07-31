@@ -118,4 +118,9 @@ contract QubitDevReservoir is WhitelistUpgradeable {
             return amountToDrip;
         }
     }
+
+    function setStartAt(uint _startAt) public onlyOwner {
+        require(startAt <= _startAt, "QubitDevReservoir: invalid startAt");
+        startAt = _startAt;
+    }
 }
