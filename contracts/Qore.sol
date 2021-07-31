@@ -162,6 +162,7 @@ contract Qore is QoreAdmin {
         address borrower,
         uint amount
     ) external payable override {
+        amount = IQToken(qTokenBorrowed).underlying() == address(WBNB) ? msg.value : amount;
         require(marketInfos[qTokenBorrowed].isListed && marketInfos[qTokenCollateral].isListed, "Qore: invalid market");
         require(
             IQValidator(qValidator).liquidateAllowed(qTokenBorrowed, borrower, amount, closeFactor),
