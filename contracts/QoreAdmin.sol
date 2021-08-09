@@ -175,14 +175,14 @@ abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
         require(marketInfos[qToken].isListed, "Qore: unlisted market");
         require(IQToken(qToken).totalSupply() == 0 && IQToken(qToken).totalBorrow() == 0, "Qore: cannot remove market");
 
-        address[] memory updatedMarkets = new address[](markets.length - 1);
-        uint counter = 0;
-        for (uint i = 0; i < markets.length; i++) {
-            if (markets[i] != qToken) {
-                updatedMarkets[counter++] = markets[i];
+        uint length = markets.length;
+        for (uint i = 0; i < length; i++) {
+            if (markets[i] == qToken) {
+                markets[i] = markets[length - 1];
+                markets.pop();
+                delete marketInfos[qToken];
+                break;
             }
         }
-        markets = updatedMarkets;
-        delete marketInfos[qToken];
     }
 }

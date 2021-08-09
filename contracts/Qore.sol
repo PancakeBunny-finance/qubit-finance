@@ -181,15 +181,15 @@ contract Qore is QoreAdmin {
 
     function removeUserFromList(address _account) external onlyKeeper {
         require(marketListOfUsers[_account].length == 0, "Qore: cannot remove user");
-        address[] memory updateUserList = new address[](totalUserList.length - 1);
 
-        uint counter = 0;
-        for (uint i = 0; i < totalUserList.length; i++) {
-            if (totalUserList[i] != _account) {
-                updateUserList[counter++] = totalUserList[i];
+        uint length = totalUserList.length;
+        for (uint i = 0; i < length; i++) {
+            if (totalUserList[i] == _account) {
+                totalUserList[i] = totalUserList[length - 1];
+                totalUserList.pop();
+                break;
             }
         }
-        totalUserList = updateUserList;
     }
 
     /* ========== PRIVATE FUNCTIONS ========== */
@@ -208,13 +208,13 @@ contract Qore is QoreAdmin {
     function _removeUserMarket(address qTokenToExit, address _account) private {
         require(marketListOfUsers[_account].length > 0, "Qore: cannot pop user market");
 
-        address[] memory updatedMarkets = new address[](marketListOfUsers[_account].length - 1);
-        uint counter = 0;
-        for (uint i = 0; i < marketListOfUsers[_account].length; i++) {
-            if (marketListOfUsers[_account][i] != qTokenToExit) {
-                updatedMarkets[counter++] = marketListOfUsers[_account][i];
+        uint length = marketListOfUsers[_account].length;
+        for (uint i = 0; i < length; i++) {
+            if (marketListOfUsers[_account][i] == qTokenToExit) {
+                marketListOfUsers[_account][i] = marketListOfUsers[_account][length - 1];
+                marketListOfUsers[_account].pop();
+                break;
             }
         }
-        marketListOfUsers[_account] = updatedMarkets;
     }
 }
