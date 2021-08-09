@@ -192,9 +192,6 @@ contract QToken is QMarket {
         address borrower,
         uint amount
     ) external payable override accrue onlyQore nonReentrant returns (uint) {
-        if (amount == uint(-1)) {
-            amount = borrowBalanceOf(borrower);
-        }
         return _repay(payer, borrower, underlying == address(WBNB) ? msg.value : amount);
     }
 
