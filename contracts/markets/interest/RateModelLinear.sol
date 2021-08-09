@@ -35,6 +35,7 @@ pragma solidity 0.6.12;
 * SOFTWARE.
 */
 
+import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../../interfaces/IRateModel.sol";
@@ -56,8 +57,8 @@ contract RateModelLinear is IRateModel, OwnableUpgradeable {
         uint borrows,
         uint reserves
     ) public pure returns (uint) {
-        if (borrows == 0) return 0;
-        return borrows.mul(1e18).div(cash.add(borrows).sub(reserves));
+        if (reserves >= cash.add(borrows)) return 0;
+        return Math.min(borrows.mul(1e18).div(cash.add(borrows).sub(reserves)), 1e18);
     }
 
     function getBorrowRate(
