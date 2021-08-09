@@ -75,6 +75,11 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
     uint private lastAccruedTime;
     uint private accInterestIndex;
 
+    /* ========== Event ========== */
+
+    event RateModelUpdated(address newRateModel);
+    event ReserveFactorUpdated(uint newReserveFactor);
+
     /* ========== INITIALIZER ========== */
 
     receive() external payable {}
@@ -112,6 +117,7 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
 
     function setQore(address _qore) public onlyOwner {
         require(_qore != address(0), "QMarket: invalid qore address");
+        require(address(qore) == address(0), "QMarket: qore already set");
         qore = IQore(_qore);
     }
 
@@ -124,11 +130,13 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
     function setRateModel(address _rateModel) public accrue onlyOwner {
         require(_rateModel != address(0), "QMarket: invalid rate model address");
         rateModel = IRateModel(_rateModel);
+        emit RateModelUpdated(_rateModel);
     }
 
     function setReserveFactor(uint _reserveFactor) public accrue onlyOwner {
         require(_reserveFactor <= RESERVE_FACTOR_MAX, "QMarket: invalid reserve factor");
         reserveFactor = _reserveFactor;
+        emit ReserveFactorUpdated(_reserveFactor);
     }
 
     /* ========== VIEWS ========== */

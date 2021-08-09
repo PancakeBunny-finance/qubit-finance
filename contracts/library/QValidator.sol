@@ -131,6 +131,7 @@ contract QValidator is IQValidator, OwnableUpgradeable {
 
     function setQore(address _qore) external onlyOwner {
         require(_qore != address(0), "QValidator: invalid qore address");
+        require(address(qore) == address(0), "QValidator: qore already set");
         qore = IQore(_qore);
     }
 

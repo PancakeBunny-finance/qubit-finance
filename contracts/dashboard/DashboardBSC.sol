@@ -71,6 +71,7 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
 
     function setQore(address _qore) external onlyOwner {
         require(_qore != address(0), "DashboardBSC: invalid qore address");
+        require(address(qore) == address(0), "DashboardBSC: qore already set");
         qore = IQore(_qore);
     }
 

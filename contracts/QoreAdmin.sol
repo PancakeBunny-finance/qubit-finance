@@ -70,6 +70,9 @@ abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
     event CollateralFactorUpdated(address qToken, uint newCollateralFactor);
     event LiquidationIncentiveUpdated(uint newLiquidationIncentive);
     event BorrowCapUpdated(address indexed qToken, uint newBorrowCap);
+    event KeeperUpdated(address newKeeper);
+    event QValidatorUpdated(address newQValidator);
+    event QDistributorUpdated(address newQDistributor);
 
     /* ========== MODIFIERS ========== */
 
@@ -97,16 +100,19 @@ abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
     function setKeeper(address _keeper) external onlyKeeper {
         require(_keeper != address(0), "Qore: invalid keeper address");
         keeper = _keeper;
+        emit KeeperUpdated(_keeper);
     }
 
     function setQValidator(address _qValidator) external onlyKeeper {
         require(_qValidator != address(0), "Qore: invalid qValidator address");
         qValidator = _qValidator;
+        emit QValidatorUpdated(_qValidator);
     }
 
     function setQDistributor(address _qDistributor) external onlyKeeper {
         require(_qDistributor != address(0), "Qore: invalid qDistributor address");
         qDistributor = IQDistributor(_qDistributor);
+        emit QDistributorUpdated(_qDistributor);
     }
 
     function setCloseFactor(uint newCloseFactor) external onlyKeeper {
