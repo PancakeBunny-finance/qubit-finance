@@ -130,15 +130,19 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
     }
 
     function accruedQubit(address market, address user) external view override returns (uint) {
-        DistributionInfo storage dist = distributions[market];
-        UserInfo storage userInfo = marketUsers[market][user];
+        DistributionInfo memory dist = distributions[market];
+        UserInfo memory userInfo = marketUsers[market][user];
 
         uint _accruedQubit = userInfo.accruedQubit;
         uint accPerShareSupply = dist.accPerShareSupply;
         uint accPerShareBorrow = dist.accPerShareBorrow;
 
         uint timeElapsed = block.timestamp > dist.accruedAt ? block.timestamp.sub(dist.accruedAt) : 0;
-        if (timeElapsed > 0) {
+        if (
+            timeElapsed > 0 ||
+            (accPerShareSupply != userInfo.accPerShareSupply) ||
+            (accPerShareBorrow != userInfo.accPerShareBorrow)
+        ) {
             if (dist.totalBoostedSupply > 0) {
                 accPerShareSupply = accPerShareSupply.add(
                     dist.supplyRate.mul(timeElapsed).mul(1e18).div(dist.totalBoostedSupply)
@@ -243,6 +247,7 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         address sender,
         address receiver
     ) external override nonReentrant onlyMarket updateDistributionOf(qToken) {
+        require(sender != receiver, "QDistributor: invalid transfer");
         DistributionInfo storage dist = distributions[qToken];
         UserInfo storage senderInfo = marketUsers[qToken][sender];
         UserInfo storage receiverInfo = marketUsers[qToken][receiver];
