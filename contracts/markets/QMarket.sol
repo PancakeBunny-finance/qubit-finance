@@ -196,8 +196,14 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
         returns (QConstant.AccountSnapshot memory)
     {
         QConstant.AccountSnapshot memory snapshot;
+        QConstant.BorrowInfo storage info = accountBorrows[account];
+        if (info.interestIndex != 0) {
+            info.borrow = info.borrow.mul(accInterestIndex).div(info.interestIndex);
+            info.interestIndex = accInterestIndex;
+        }
+
         snapshot.qTokenBalance = accountBalances[account];
-        snapshot.borrowBalance = accountBorrows[account].borrow;
+        snapshot.borrowBalance = info.borrow;
         snapshot.exchangeRate = exchangeRate();
         return snapshot;
     }
