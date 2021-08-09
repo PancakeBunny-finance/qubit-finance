@@ -150,6 +150,7 @@ contract QValidator is IQValidator, OwnableUpgradeable {
         address borrower,
         uint borrowAmount
     ) external override returns (bool) {
+        require(qore.checkMembership(borrower, address(qToken)), "QValidator: enterMarket required");
         require(oracle.getUnderlyingPrice(address(qToken)) > 0, "QValidator: Underlying price error");
 
         // Borrow cap of 0 corresponds to unlimited borrowing
