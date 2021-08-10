@@ -111,7 +111,14 @@ contract Qore is QoreAdmin {
         emit MarketExited(qToken, msg.sender);
     }
 
-    function supply(address qToken, uint uAmount) external payable override onlyListedMarket(qToken) returns (uint) {
+    function supply(address qToken, uint uAmount)
+        external
+        payable
+        override
+        onlyListedMarket(qToken)
+        nonReentrant
+        returns (uint)
+    {
         uAmount = IQToken(qToken).underlying() == address(WBNB) ? msg.value : uAmount;
 
         uint qAmount = IQToken(qToken).supply{ value: msg.value }(msg.sender, uAmount);
@@ -120,21 +127,33 @@ contract Qore is QoreAdmin {
         return qAmount;
     }
 
-    function redeemToken(address qToken, uint qAmount) external override onlyListedMarket(qToken) returns (uint) {
+    function redeemToken(address qToken, uint qAmount)
+        external
+        override
+        onlyListedMarket(qToken)
+        nonReentrant
+        returns (uint)
+    {
         uint uAmountRedeem = IQToken(qToken).redeemToken(msg.sender, qAmount);
         qDistributor.notifySupplyUpdated(qToken, msg.sender);
 
         return uAmountRedeem;
     }
 
-    function redeemUnderlying(address qToken, uint uAmount) external override onlyListedMarket(qToken) returns (uint) {
+    function redeemUnderlying(address qToken, uint uAmount)
+        external
+        override
+        onlyListedMarket(qToken)
+        nonReentrant
+        returns (uint)
+    {
         uint uAmountRedeem = IQToken(qToken).redeemUnderlying(msg.sender, uAmount);
         qDistributor.notifySupplyUpdated(qToken, msg.sender);
 
         return uAmountRedeem;
     }
 
-    function borrow(address qToken, uint amount) external override onlyListedMarket(qToken) {
+    function borrow(address qToken, uint amount) external override onlyListedMarket(qToken) nonReentrant {
         _enterMarket(qToken, msg.sender);
         require(IQValidator(qValidator).borrowAllowed(qToken, msg.sender, amount), "Qore: cannot borrow");
 
@@ -142,7 +161,7 @@ contract Qore is QoreAdmin {
         qDistributor.notifyBorrowUpdated(qToken, msg.sender);
     }
 
-    function repayBorrow(address qToken, uint amount) external payable override onlyListedMarket(qToken) {
+    function repayBorrow(address qToken, uint amount) external payable override onlyListedMarket(qToken) nonReentrant {
         IQToken(payable(qToken)).repayBorrow{ value: msg.value }(msg.sender, amount);
         qDistributor.notifyBorrowUpdated(qToken, msg.sender);
     }
@@ -151,7 +170,7 @@ contract Qore is QoreAdmin {
         address qToken,
         address borrower,
         uint amount
-    ) external payable override onlyListedMarket(qToken) {
+    ) external payable override onlyListedMarket(qToken) nonReentrant {
         IQToken(payable(qToken)).repayBorrowBehalf{ value: msg.value }(msg.sender, borrower, amount);
         qDistributor.notifyBorrowUpdated(qToken, borrower);
     }
@@ -161,7 +180,7 @@ contract Qore is QoreAdmin {
         address qTokenCollateral,
         address borrower,
         uint amount
-    ) external payable override {
+    ) external payable override nonReentrant {
         amount = IQToken(qTokenBorrowed).underlying() == address(WBNB) ? msg.value : amount;
         require(marketInfos[qTokenBorrowed].isListed && marketInfos[qTokenCollateral].isListed, "Qore: invalid market");
         require(

@@ -126,15 +126,7 @@ contract QToken is QMarket {
 
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function supply(address account, uint uAmount)
-        external
-        payable
-        override
-        accrue
-        onlyQore
-        nonReentrant
-        returns (uint)
-    {
+    function supply(address account, uint uAmount) external payable override accrue onlyQore returns (uint) {
         uint exchangeRate = exchangeRate();
         uAmount = underlying == address(WBNB) ? msg.value : uAmount;
         uAmount = _doTransferIn(account, uAmount);
@@ -148,22 +140,15 @@ contract QToken is QMarket {
         return qAmount;
     }
 
-    function redeemToken(address redeemer, uint qAmount) external override accrue onlyQore nonReentrant returns (uint) {
+    function redeemToken(address redeemer, uint qAmount) external override accrue onlyQore returns (uint) {
         return _redeem(redeemer, qAmount, 0);
     }
 
-    function redeemUnderlying(address redeemer, uint uAmount)
-        external
-        override
-        accrue
-        onlyQore
-        nonReentrant
-        returns (uint)
-    {
+    function redeemUnderlying(address redeemer, uint uAmount) external override accrue onlyQore returns (uint) {
         return _redeem(redeemer, 0, uAmount);
     }
 
-    function borrow(address account, uint amount) external override accrue onlyQore nonReentrant returns (uint) {
+    function borrow(address account, uint amount) external override accrue onlyQore returns (uint) {
         require(getCash() >= amount, "QToken: borrow amount exceeds cash");
         updateBorrowInfo(account, amount, 0);
         _doTransferOut(account, amount);
@@ -172,15 +157,7 @@ contract QToken is QMarket {
         return amount;
     }
 
-    function repayBorrow(address account, uint amount)
-        external
-        payable
-        override
-        accrue
-        onlyQore
-        nonReentrant
-        returns (uint)
-    {
+    function repayBorrow(address account, uint amount) external payable override accrue onlyQore returns (uint) {
         if (amount == uint(-1)) {
             amount = borrowBalanceOf(account);
         }
@@ -191,7 +168,7 @@ contract QToken is QMarket {
         address payer,
         address borrower,
         uint amount
-    ) external payable override accrue onlyQore nonReentrant returns (uint) {
+    ) external payable override accrue onlyQore returns (uint) {
         return _repay(payer, borrower, underlying == address(WBNB) ? msg.value : amount);
     }
 
@@ -200,7 +177,7 @@ contract QToken is QMarket {
         address liquidator,
         address borrower,
         uint amount
-    ) external payable override accrue onlyQore nonReentrant returns (uint qAmountToSeize) {
+    ) external payable override accrue onlyQore returns (uint qAmountToSeize) {
         require(borrower != liquidator, "QToken: cannot liquidate yourself");
 
         amount = underlying == address(WBNB) ? msg.value : amount;
@@ -219,7 +196,7 @@ contract QToken is QMarket {
         address liquidator,
         address borrower,
         uint qAmount
-    ) external override accrue onlyQore nonReentrant {
+    ) external override accrue onlyQore {
         accountBalances[borrower] = accountBalances[borrower].sub(qAmount);
         accountBalances[liquidator] = accountBalances[liquidator].add(qAmount);
         qDistributor.notifyTransferred(address(this), borrower, liquidator);

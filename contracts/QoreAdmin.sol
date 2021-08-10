@@ -36,6 +36,8 @@ pragma experimental ABIEncoderV2;
 * SOFTWARE.
 */
 
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+
 import "./interfaces/IQore.sol";
 import "./interfaces/IQDistributor.sol";
 import "./interfaces/IPriceCalculator.sol";
@@ -43,7 +45,7 @@ import "./library/WhitelistUpgradeable.sol";
 import { QConstant } from "./library/QConstant.sol";
 import "./interfaces/IQToken.sol";
 
-abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
+abstract contract QoreAdmin is IQore, WhitelistUpgradeable, ReentrancyGuardUpgradeable {
     /* ========== CONSTANT VARIABLES ========== */
 
     IPriceCalculator public constant priceCalculator = IPriceCalculator(0x20E5E35ba29dC3B540a1aee781D0814D5c77Bce6);
@@ -90,6 +92,7 @@ abstract contract QoreAdmin is IQore, WhitelistUpgradeable {
 
     function __Qore_init() internal initializer {
         __WhitelistUpgradeable_init();
+        __ReentrancyGuard_init();
 
         closeFactor = 5e17;
         liquidationIncentive = 11e17;

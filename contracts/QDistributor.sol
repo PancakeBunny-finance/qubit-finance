@@ -59,7 +59,7 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
     uint public constant BOOST_PORTION_Q = 60;
     uint public constant BOOST_PORTION_MAX = 100;
 
-    IQore public constant qore = IQore(0x21824518e7E443812586c96aB5B05E9F91831E06);
+    IQore public constant qore = IQore(0xF70314eb9c7Fe7D88E6af5aa7F898b3A162dcd48);
     IQubitLocker public constant qubitLocker = IQubitLocker(0xB8243be1D145a528687479723B394485cE3cE773);
 
     /* ========== STATE VARIABLES ========== */
