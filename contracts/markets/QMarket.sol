@@ -222,8 +222,10 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
 
     function accruedBorrowBalanceOf(address account) external override accrue returns (uint) {
         QConstant.BorrowInfo storage info = accountBorrows[account];
-        info.borrow = info.borrow.mul(accInterestIndex).div(info.interestIndex);
-        info.interestIndex = accInterestIndex;
+        if (info.interestIndex != 0) {
+            info.borrow = info.borrow.mul(accInterestIndex).div(info.interestIndex);
+            info.interestIndex = accInterestIndex;
+        }
         return info.borrow;
     }
 
