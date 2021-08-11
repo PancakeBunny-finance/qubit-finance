@@ -45,7 +45,7 @@ contract QubitToken is BEP20Upgradeable {
     /* ========== MODIFIERS ========== */
 
     modifier onlyMinter() {
-        require(msg.sender != address(0) && isMinter(msg.sender), "QBT: caller is not the minter");
+        require(isMinter(msg.sender), "QBT: caller is not the minter");
         _;
     }
 

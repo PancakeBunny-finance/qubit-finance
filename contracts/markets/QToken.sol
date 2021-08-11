@@ -38,9 +38,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/Math.sol";
 
-import "../interfaces/IPancakeRouter02.sol";
 import "../interfaces/IQDistributor.sol";
-import "../library/QConstant.sol";
 import "../library/SafeToken.sol";
 import "./QMarket.sol";
 
