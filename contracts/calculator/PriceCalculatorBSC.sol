@@ -98,14 +98,15 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
 
     function setPrices(address[] memory assets, uint[] memory prices) external onlyKeeper {
         for (uint i = 0; i < assets.length; i++) {
-            references[assets[i]] = ReferenceData({ lastData: prices[i], lastUpdated: block.timestamp });
+            references[assets[i]] = ReferenceData({lastData : prices[i], lastUpdated : block.timestamp});
         }
     }
 
     /* ========== VIEWS ========== */
 
     function priceOf(address asset) public view override returns (uint priceInUSD) {
-        (, priceInUSD) = _oracleValueOf(asset, 1e18);
+        uint assetDecimals = asset == address(0) ? 1e18 : 10 ** uint(IBEP20(asset).decimals());
+        (, priceInUSD) = _oracleValueOf(asset, assetDecimals);
         return priceInUSD;
     }
 
@@ -130,7 +131,7 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
     }
 
     function priceOfBNB() public view returns (uint) {
-        (, int price, , , ) = AggregatorV3Interface(tokenFeeds[WBNB]).latestRoundData();
+        (, int price, , ,) = AggregatorV3Interface(tokenFeeds[WBNB]).latestRoundData();
         return uint(price).mul(1e10);
     }
 
@@ -154,7 +155,7 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
         } else if (keccak256(abi.encodePacked(IPancakePair(asset).symbol())) == keccak256("Cake-LP")) {
             if (IPancakePair(asset).totalSupply() == 0) return (0, 0);
 
-            (uint reserve0, uint reserve1, ) = IPancakePair(asset).getReserves();
+            (uint reserve0, uint reserve1,) = IPancakePair(asset).getReserves();
             if (IPancakePair(asset).token0() == WBNB) {
                 valueInBNB = amount.mul(reserve0).mul(2).div(IPancakePair(asset).totalSupply());
                 valueInUSD = valueInBNB.mul(priceOfBNB()).div(1e18);
@@ -162,17 +163,26 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
                 valueInBNB = amount.mul(reserve1).mul(2).div(IPancakePair(asset).totalSupply());
                 valueInUSD = valueInBNB.mul(priceOfBNB()).div(1e18);
             } else {
-                (uint token0PriceInBNB, ) = valueOfAsset(IPancakePair(asset).token0(), 1e18);
-                valueInBNB = amount.mul(reserve0).mul(2).mul(token0PriceInBNB).div(1e18).div(
-                    IPancakePair(asset).totalSupply()
-                );
+                (uint tokenPriceInBNB,) = valueOfAsset(IPancakePair(asset).token0(), 10 ** uint(IBEP20(IPancakePair(asset).token0()).decimals()));
+                if (tokenPriceInBNB == 0) {
+                    (tokenPriceInBNB,) = valueOfAsset(IPancakePair(asset).token1(), 10 ** uint(IBEP20(IPancakePair(asset).token1()).decimals()));
+                    if (IBEP20(IPancakePair(asset).token1()).decimals() < uint8(18)) {
+                        reserve1 = reserve1.mul(10 ** uint(uint8(18) - IBEP20(IPancakePair(asset).token1()).decimals()));
+                    }
+                    valueInBNB = amount.mul(reserve1).mul(2).mul(tokenPriceInBNB).div(1e18).div(IPancakePair(asset).totalSupply());
+                } else {
+                    if (IBEP20(IPancakePair(asset).token0()).decimals() < uint8(18)) {
+                        reserve0 = reserve0.mul(10 ** uint(uint8(18) - IBEP20(IPancakePair(asset).token0()).decimals()));
+                    }
+                    valueInBNB = amount.mul(reserve0).mul(2).mul(tokenPriceInBNB).div(1e18).div(IPancakePair(asset).totalSupply());
+                }
                 valueInUSD = valueInBNB.mul(priceOfBNB()).div(1e18);
             }
         } else {
             address pair = factory.getPair(asset, WBNB);
             if (IBEP20(asset).balanceOf(pair) == 0) return (0, 0);
+            (uint reserve0, uint reserve1,) = IPancakePair(pair).getReserves();
 
-            (uint reserve0, uint reserve1, ) = IPancakePair(pair).getReserves();
             if (IPancakePair(pair).token0() == WBNB) {
                 valueInBNB = reserve0.mul(amount).div(reserve1);
             } else if (IPancakePair(pair).token1() == WBNB) {
@@ -190,12 +200,20 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
         address token0 = IPancakePair(pair).token0();
         address token1 = IPancakePair(pair).token1();
         uint totalSupply = IPancakePair(pair).totalSupply();
-        (uint r0, uint r1, ) = IPancakePair(pair).getReserves();
+        (uint reserve0, uint reserve1,) = IPancakePair(pair).getReserves();
 
-        uint sqrtK = HomoraMath.sqrt(r0.mul(r1)).fdiv(totalSupply);
-        (uint px0, ) = _oracleValueOf(token0, 1e18);
-        (uint px1, ) = _oracleValueOf(token1, 1e18);
-        uint fairPriceInBNB = sqrtK.mul(2).mul(HomoraMath.sqrt(px0)).div(2**56).mul(HomoraMath.sqrt(px1)).div(2**56);
+        if (IBEP20(token0).decimals() < uint8(18)) {
+            reserve0 = reserve0.mul(10 ** uint(uint8(18) - IBEP20(token0).decimals()));
+        }
+
+        if (IBEP20(token1).decimals() < uint8(18)) {
+            reserve1 = reserve1.mul(10 ** uint(uint8(18) - IBEP20(token1).decimals()));
+        }
+
+        uint sqrtK = HomoraMath.sqrt(reserve0.mul(reserve1)).fdiv(totalSupply);
+        (uint px0,) = _oracleValueOf(token0, 10 ** uint(IBEP20(token0).decimals()));
+        (uint px1,) = _oracleValueOf(token1, 10 ** uint(IBEP20(token1).decimals()));
+        uint fairPriceInBNB = sqrtK.mul(2).mul(HomoraMath.sqrt(px0)).div(2 ** 56).mul(HomoraMath.sqrt(px1)).div(2 ** 56);
 
         valueInBNB = fairPriceInBNB.mul(amount).div(1e18);
         valueInUSD = valueInBNB.mul(priceOfBNB()).div(1e18);
@@ -203,11 +221,12 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
 
     function _oracleValueOf(address asset, uint amount) private view returns (uint valueInBNB, uint valueInUSD) {
         valueInUSD = 0;
+        uint assetDecimals = asset == address(0) ? 1e18 : 10 ** uint(IBEP20(asset).decimals());
         if (tokenFeeds[asset] != address(0)) {
-            (, int price, , , ) = AggregatorV3Interface(tokenFeeds[asset]).latestRoundData();
-            valueInUSD = uint(price).mul(1e10).mul(amount).div(1e18);
+            (, int price, , ,) = AggregatorV3Interface(tokenFeeds[asset]).latestRoundData();
+            valueInUSD = uint(price).mul(1e10).mul(amount).div(assetDecimals);
         } else if (references[asset].lastUpdated > block.timestamp.sub(1 days)) {
-            valueInUSD = references[asset].lastData.mul(amount).div(1e18);
+            valueInUSD = references[asset].lastData.mul(amount).div(assetDecimals);
         }
         valueInBNB = valueInUSD.mul(1e18).div(priceOfBNB());
     }
