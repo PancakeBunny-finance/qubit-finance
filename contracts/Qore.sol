@@ -86,6 +86,41 @@ contract Qore is QoreAdmin {
         return usersOfMarket[qToken][account];
     }
 
+    function accountLiquidityOf(address account) external view override returns (uint collateralInUSD, uint supplyInUSD, uint borrowInUSD) {
+        return IQValidator(qValidator).getAccountLiquidity(account);
+    }
+
+    function distributionInfoOf(address market) external view override returns (QConstant.DistributionInfo memory) {
+        return IQDistributor(qDistributor).distributionInfoOf(market);
+    }
+
+    function accountDistributionInfoOf(address market, address account) external view override returns (QConstant.DistributionAccountInfo memory) {
+        return IQDistributor(qDistributor).accountDistributionInfoOf(market, account);
+    }
+
+    function apyDistributionOf(address market, address account) external view override returns (QConstant.DistributionAPY memory) {
+        return IQDistributor(qDistributor).apyDistributionOf(market, account);
+    }
+
+    function distributionSpeedOf(address qToken) external view override returns (uint supplySpeed, uint borrowSpeed) {
+        QConstant.DistributionInfo memory distribution = IQDistributor(qDistributor).distributionInfoOf(qToken);
+        return (distribution.supplySpeed, distribution.borrowSpeed);
+    }
+
+    function boostedRatioOf(address market, address account) external view override returns (uint boostedSupplyRatio, uint boostedBorrowRatio) {
+        return IQDistributor(qDistributor).boostedRatioOf(market, account);
+    }
+
+    function accruedQubit(address account) external view override returns (uint) {
+        return IQDistributor(qDistributor).accruedQubit(markets, account);
+    }
+
+    function accruedQubit(address market, address account) external view override returns (uint) {
+        address[] memory _markets = new address[](1);
+        _markets[0] = market;
+        return IQDistributor(qDistributor).accruedQubit(_markets, account);
+    }
+
     function getTotalUserList() external view override returns (address[] memory) {
         return totalUserList;
     }
@@ -196,6 +231,16 @@ contract Qore is QoreAdmin {
         );
         IQToken(qTokenCollateral).seize(msg.sender, borrower, qAmountToSeize);
         qDistributor.notifyBorrowUpdated(qTokenBorrowed, borrower);
+    }
+
+    function claimQubit() external override nonReentrant {
+        IQDistributor(qDistributor).claimQubit(markets, msg.sender);
+    }
+
+    function claimQubit(address market) external override nonReentrant {
+        address[] memory _markets = new address[](1);
+        _markets[0] = market;
+        IQDistributor(qDistributor).claimQubit(_markets, msg.sender);
     }
 
     function removeUserFromList(address _account) external onlyKeeper {

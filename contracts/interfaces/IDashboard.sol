@@ -5,6 +5,58 @@ pragma experimental ABIEncoderV2;
 import "../library/QConstant.sol";
 
 interface IDashboard {
+    struct QubitData {
+        MarketData[] marketList;
+        MembershipData[] membershipList;
+        AccountAccData accountAcc;
+        LockerData locker;
+        uint marketAverageBoostedRatio;
+    }
+
+    struct MarketData {
+        address qToken;
+
+        uint apySupply;
+        uint apyBorrow;
+        uint apySupplyQBT;
+        uint apyBorrowQBT;
+
+        uint totalSupply;
+        uint totalBorrows;
+        uint totalBoostedSupply;
+        uint totalBoostedBorrow;
+
+        uint cash;
+        uint reserve;
+        uint reserveFactor;
+        uint collateralFactor;
+        uint exchangeRate;
+        uint borrowCap;
+    }
+
+    struct MembershipData {
+        address qToken;
+        bool membership;
+        uint supply;
+        uint borrow;
+        uint boostedSupply;
+        uint boostedBorrow;
+        uint apyAccountSupplyQBT;
+        uint apyAccountBorrowQBT;
+    }
+
+    struct AccountAccData {
+        uint accruedQubit;
+        uint collateralInUSD;
+        uint supplyInUSD;
+        uint borrowInUSD;
+        uint accApySupply;
+        uint accApyBorrow;
+        uint accApySupplyQBT;
+        uint accApyBorrowQBT;
+        uint averageBoostedRatio;
+    }
+
     struct LockerData {
         uint totalLocked;
         uint locked;
@@ -14,46 +66,18 @@ interface IDashboard {
         uint expiry;
     }
 
-    struct MarketData {
-        uint apySupply;
-        uint apySupplyQBT;
-        uint apyMySupplyQBT;
-        uint apyBorrow;
-        uint apyBorrowQBT;
-        uint apyMyBorrowQBT;
-        uint liquidity;
-        uint collateralFactor;
-        bool membership;
-        uint supply;
-        uint borrow;
-        uint totalSupply;
-        uint totalBorrow;
-        uint supplyBoosted;
-        uint borrowBoosted;
-        uint totalSupplyBoosted;
-        uint totalBorrowBoosted;
-    }
-
-    struct PortfolioData {
-        int userApy;
-        uint userApySupply;
-        uint userApySupplyQBT;
-        uint userApyBorrow;
-        uint userApyBorrowQBT;
-        uint supplyInUSD;
-        uint borrowInUSD;
-        uint limitInUSD;
-    }
-
-    struct AccountLiquidityData {
+    struct LiquidationState {
         address account;
         uint marketCount;
         uint collateralUSD;
         uint borrowUSD;
     }
 
-    function statusOf(address account, address[] memory markets)
-        external
-        view
-        returns (LockerData memory, MarketData[] memory);
+    function qubitDataOf(address[] memory markets, address account) external view returns (QubitData memory);
+
+    function marketDataOf(address market) external view returns (MarketData memory);
+    function membershipDataOf(address market, address account) external view returns (MembershipData memory);
+    function accountAccDataOf(address account) external view returns (AccountAccData memory);
+    function lockerDataOf(address account) external view returns (LockerData memory);
+    function liquidationStates(uint page, uint resultPerPage) external view returns (LiquidationState[] memory, uint next);
 }

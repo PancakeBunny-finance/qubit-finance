@@ -55,6 +55,10 @@ interface IQToken {
 
     function totalBorrow() external view returns (uint);
 
+    function totalReserve() external view returns (uint);
+
+    function reserveFactor() external view returns (uint);
+
     function exchangeRate() external view returns (uint);
 
     function getCash() external view returns (uint);
@@ -79,11 +83,7 @@ interface IQToken {
 
     function transfer(address dst, uint amount) external returns (bool);
 
-    function transferFrom(
-        address src,
-        address dst,
-        uint amount
-    ) external returns (bool);
+    function transferFrom(address src, address dst, uint amount) external returns (bool);
 
     function supply(address account, uint underlyingAmount) external payable returns (uint);
 
@@ -95,22 +95,9 @@ interface IQToken {
 
     function repayBorrow(address account, uint amount) external payable returns (uint);
 
-    function repayBorrowBehalf(
-        address payer,
-        address borrower,
-        uint amount
-    ) external payable returns (uint);
+    function repayBorrowBehalf(address payer, address borrower, uint amount) external payable returns (uint);
 
-    function liquidateBorrow(
-        address qTokenCollateral,
-        address liquidator,
-        address borrower,
-        uint amount
-    ) external payable returns (uint qAmountToSeize);
+    function liquidateBorrow(address qTokenCollateral, address liquidator, address borrower, uint amount) external payable returns (uint qAmountToSeize);
 
-    function seize(
-        address liquidator,
-        address borrower,
-        uint qTokenAmount
-    ) external;
+    function seize(address liquidator, address borrower, uint qTokenAmount) external;
 }

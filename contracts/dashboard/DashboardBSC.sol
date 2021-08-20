@@ -42,9 +42,8 @@ import "../interfaces/IPriceCalculator.sol";
 import "../interfaces/IQToken.sol";
 import "../interfaces/IQore.sol";
 import "../interfaces/IDashboard.sol";
-import "../interfaces/IQDistributor.sol";
 import "../interfaces/IQubitLocker.sol";
-import "../interfaces/IQValidator.sol";
+
 
 contract DashboardBSC is IDashboard, OwnableUpgradeable {
     using SafeMath for uint;
@@ -57,9 +56,7 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
     /* ========== STATE VARIABLES ========== */
 
     IQore public qore;
-    IQDistributor public qDistributor;
     IQubitLocker public qubitLocker;
-    IQValidator public qValidator;
 
     /* ========== INITIALIZER ========== */
 
@@ -75,118 +72,95 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
         qore = IQore(_qore);
     }
 
-    function setQDistributor(address _qDistributor) external onlyOwner {
-        require(_qDistributor != address(0), "DashboardBSC: invalid qDistributor address");
-        qDistributor = IQDistributor(_qDistributor);
-    }
-
     function setLocker(address _qubitLocker) external onlyOwner {
         require(_qubitLocker != address(0), "DashboardBSC: invalid locker address");
         qubitLocker = IQubitLocker(_qubitLocker);
     }
 
-    function setQValidator(address _qValidator) external onlyOwner {
-        require(_qValidator != address(0), "DashboardBSC: invalid qValidator address");
-        qValidator = IQValidator(_qValidator);
-    }
-
     /* ========== VIEW FUNCTIONS ========== */
 
-    function statusOf(address account, address[] memory markets)
-        external
-        view
-        override
-        returns (LockerData memory, MarketData[] memory)
-    {
-        MarketData[] memory results = new MarketData[](markets.length);
-        for (uint i = 0; i < markets.length; i++) {
-            results[i] = marketDataOf(account, markets[i]);
+    function qubitDataOf(address[] memory markets, address account) public view override returns (QubitData memory) {
+        QubitData memory qubit;
+        qubit.marketList = new MarketData[](markets.length);
+        qubit.membershipList = new MembershipData[](markets.length);
+
+        if (account != address(0)) {
+            qubit.accountAcc = accountAccDataOf(account);
+            qubit.locker = lockerDataOf(account);
         }
-        return (lockerDataOf(account), results);
+
+        for (uint i = 0; i < markets.length; i++) {
+            qubit.marketList[i] = marketDataOf(markets[i]);
+
+            if (account != address(0)) {
+                qubit.membershipList[i] = membershipDataOf(markets[i], account);
+            }
+        }
+
+        qubit.marketAverageBoostedRatio = _calculateAccMarketAverageBoostedRatio(markets);
+        return qubit;
     }
 
-    function apyDistributionOf(address market) public view returns (uint apySupplyQBT, uint apyBorrowQBT) {
-        (uint supplyRate, uint borrowRate) = qDistributor.qubitRatesOf(market);
-        (uint boostedSupply, uint boostedBorrow) = qDistributor.totalBoosted(market);
-
-        // base supply QBT APY == (qubitRate * 365 days * price Of Qubit) / (Total effective balance * exchangeRate * price of asset) / 2.5
-        uint numerSupply = supplyRate.mul(365 days).mul(priceCalculator.priceOf(QBT));
-        uint denomSupply = boostedSupply
-            .mul(IQToken(market).exchangeRate())
-            .mul(priceCalculator.getUnderlyingPrice(market))
-            .div(1e36);
-        apySupplyQBT = (denomSupply > 0) ? numerSupply.div(denomSupply).mul(100).div(250) : 0;
-
-        // base borrow QBT APY == (qubitRate * 365 days * price Of Qubit) / (Total effective balance * interestIndex * price of asset) / 2.5
-        uint numerBorrow = borrowRate.mul(365 days).mul(priceCalculator.priceOf(QBT));
-        uint denomBorrow = boostedBorrow
-            .mul(IQToken(market).getAccInterestIndex())
-            .mul(priceCalculator.getUnderlyingPrice(market))
-            .div(1e36);
-        apyBorrowQBT = (denomBorrow > 0) ? numerBorrow.div(denomBorrow).mul(100).div(250) : 0;
-    }
-
-    function userApyDistributionOf(address account, address market)
-        public
-        view
-        returns (uint userApySupplyQBT, uint userApyBorrowQBT)
-    {
-        (uint apySupplyQBT, uint apyBorrowQBT) = apyDistributionOf(market);
-
-        (uint userBoostedSupply, uint userBoostedBorrow) = qDistributor.boostedBalanceOf(market, account);
-        uint userSupply = IQToken(market).balanceOf(account);
-        uint userBorrow = IQToken(market).borrowBalanceOf(account).mul(1e18).div(IQToken(market).getAccInterestIndex());
-
-        // user supply QBT APY == ((qubitRate * 365 days * price Of Qubit) / (Total effective balance * exchangeRate * price of asset) ) * my boosted balance  / my balance
-        userApySupplyQBT = (userSupply > 0) ? apySupplyQBT.mul(250).div(100).mul(userBoostedSupply).div(userSupply) : 0;
-        // user borrow QBT APY == (qubitRate * 365 days * price Of Qubit) / (Total effective balance * interestIndex * price of asset) * my boosted balance  / my balance
-        userApyBorrowQBT = (userBorrow > 0) ? apyBorrowQBT.mul(250).div(100).mul(userBoostedBorrow).div(userBorrow) : 0;
-    }
-
-    function marketDataOf(address account, address market) public view returns (MarketData memory) {
+    function marketDataOf(address market) public view override returns (MarketData memory) {
         MarketData memory marketData;
+        QConstant.DistributionAPY memory apyDistribution = qore.apyDistributionOf(market, address(0));
+        QConstant.DistributionInfo memory distributionInfo = qore.distributionInfoOf(market);
+        IQToken qToken = IQToken(market);
+        marketData.qToken = market;
 
-        (uint apySupplyQBT, uint apyBorrowQBT) = apyDistributionOf(market);
-        marketData.apySupply = IQToken(market).supplyRatePerSec().mul(365 days);
-        marketData.apySupplyQBT = apySupplyQBT;
-        marketData.apyBorrow = IQToken(market).borrowRatePerSec().mul(365 days);
-        marketData.apyBorrowQBT = apyBorrowQBT;
+        marketData.apySupply = qToken.supplyRatePerSec().mul(365 days);
+        marketData.apyBorrow = qToken.borrowRatePerSec().mul(365 days);
+        marketData.apySupplyQBT = apyDistribution.apySupplyQBT;
+        marketData.apyBorrowQBT = apyDistribution.apyBorrowQBT;
 
-        // calculate my APY for QBT reward
-        (uint userBoostedSupply, uint userBoostedBorrow) = qDistributor.boostedBalanceOf(market, account);
-        uint userSupply = IQToken(market).balanceOf(account);
-        uint userBorrow = IQToken(market).borrowBalanceOf(account).mul(1e18).div(IQToken(market).getAccInterestIndex());
-        // user supply QBT APY == ((qubitRate * 365 days * price Of Qubit) / (Total effective balance * exchangeRate * price of asset) ) * my boosted balance  / my balance
-        marketData.apyMySupplyQBT = (userSupply > 0)
-            ? apySupplyQBT.mul(250).div(100).mul(userBoostedSupply).div(userSupply)
-            : 0;
-        // user borrow QBT APY == (qubitRate * 365 days * price Of Qubit) / (Total effective balance * interestIndex * price of asset) * my boosted balance  / my balance
-        marketData.apyMyBorrowQBT = (userBorrow > 0)
-            ? apyBorrowQBT.mul(250).div(100).mul(userBoostedBorrow).div(userBorrow)
-            : 0;
+        marketData.totalSupply = qToken.totalSupply().mul(qToken.exchangeRate()).div(1e18);
+        marketData.totalBorrows = qToken.totalBorrow();
+        marketData.totalBoostedSupply = distributionInfo.totalBoostedSupply;
+        marketData.totalBoostedBorrow = distributionInfo.totalBoostedBorrow;
 
-        marketData.liquidity = IQToken(market).getCash();
+        marketData.cash = qToken.getCash();
+        marketData.reserve = qToken.totalReserve();
+        marketData.reserveFactor = qToken.reserveFactor();
         marketData.collateralFactor = qore.marketInfoOf(market).collateralFactor;
-
-        marketData.membership = qore.checkMembership(account, market);
-        marketData.supply = IQToken(market).underlyingBalanceOf(account);
-        marketData.borrow = IQToken(market).borrowBalanceOf(account);
-        marketData.totalSupply = IQToken(market).totalSupply().mul(IQToken(market).exchangeRate()).div(1e18);
-        marketData.totalBorrow = IQToken(market).totalBorrow();
-        (marketData.supplyBoosted, marketData.borrowBoosted) = qDistributor.boostedBalanceOf(market, account);
-        (marketData.totalSupplyBoosted, marketData.totalBorrowBoosted) = qDistributor.totalBoosted(market);
+        marketData.exchangeRate = qToken.exchangeRate();
+        marketData.borrowCap = qore.marketInfoOf(market).borrowCap;
         return marketData;
     }
 
-    function marketsOf(address account, address[] memory markets) public view returns (MarketData[] memory) {
-        MarketData[] memory results = new MarketData[](markets.length);
-        for (uint i = 0; i < markets.length; i++) {
-            results[i] = marketDataOf(account, markets[i]);
-        }
-        return results;
+    function membershipDataOf(address market, address account) public view override returns (MembershipData memory) {
+        MembershipData memory membershipData;
+        QConstant.DistributionAPY memory apyDistribution = qore.apyDistributionOf(market, account);
+        QConstant.DistributionAccountInfo memory accountDistributionInfo = qore.accountDistributionInfoOf(market, account);
+
+        membershipData.qToken = market;
+        membershipData.membership = qore.checkMembership(account, market);
+        membershipData.supply = IQToken(market).underlyingBalanceOf(account);
+        membershipData.borrow = IQToken(market).borrowBalanceOf(account);
+        membershipData.boostedSupply = accountDistributionInfo.boostedSupply;
+        membershipData.boostedBorrow = accountDistributionInfo.boostedBorrow;
+        membershipData.apyAccountSupplyQBT = apyDistribution.apyAccountSupplyQBT;
+        membershipData.apyAccountBorrowQBT = apyDistribution.apyAccountBorrowQBT;
+        return membershipData;
     }
 
-    function lockerDataOf(address account) public view returns (LockerData memory) {
+    function accountAccDataOf(address account) public view override returns (AccountAccData memory) {
+        AccountAccData memory accData;
+        accData.accruedQubit = qore.accruedQubit(account);
+        (accData.collateralInUSD,, accData.borrowInUSD) = qore.accountLiquidityOf(account);
+
+        address[] memory markets = qore.allMarkets();
+        uint[] memory prices = priceCalculator.getUnderlyingPrices(markets);
+        for (uint i = 0; i < markets.length; i++) {
+            accData.supplyInUSD = accData.supplyInUSD.add(IQToken(markets[i]).underlyingBalanceOf(account).mul(prices[i]).div(1e18));
+        }
+        uint totalValueInUSD = accData.supplyInUSD.add(accData.borrowInUSD);
+        (accData.accApySupply, accData.accApySupplyQBT) = _calculateAccAccountSupplyAPYOf(account, markets, prices, totalValueInUSD);
+        (accData.accApyBorrow, accData.accApyBorrowQBT) = _calculateAccAccountBorrowAPYOf(account, markets, prices, totalValueInUSD);
+        accData.averageBoostedRatio = _calculateAccAccountAverageBoostedRatio(account, markets);
+        return accData;
+    }
+
+    function lockerDataOf(address account) public view override returns (LockerData memory) {
         LockerData memory lockerInfo;
 
         lockerInfo.totalLocked = qubitLocker.totalBalance();
@@ -201,70 +175,7 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
         return lockerInfo;
     }
 
-    function portfolioDataOf(address account) public view returns (PortfolioData memory) {
-        PortfolioData memory portfolioData;
-        address[] memory markets = qore.allMarkets();
-        uint supplyEarnInUSD;
-        uint supplyQBTEarnInUSD;
-        uint borrowInterestInUSD;
-        uint borrowQBTEarnInUSD;
-        uint totalInUSD;
-
-        for (uint i = 0; i < markets.length; i++) {
-            MarketData memory marketData;
-            marketData = marketDataOf(account, markets[i]);
-
-            uint marketSupplyInUSD = marketData.supply.mul(priceCalculator.getUnderlyingPrice(markets[i])).div(1e18);
-            uint marketBorrowInUSD = marketData.borrow.mul(priceCalculator.getUnderlyingPrice(markets[i])).div(1e18);
-
-            supplyEarnInUSD = supplyEarnInUSD.add(marketSupplyInUSD.mul(marketData.apySupply).div(1e18));
-            borrowInterestInUSD = borrowInterestInUSD.add(marketBorrowInUSD.mul(marketData.apyBorrow).div(1e18));
-            supplyQBTEarnInUSD = supplyQBTEarnInUSD.add(marketSupplyInUSD.mul(marketData.apyMySupplyQBT).div(1e18));
-            borrowQBTEarnInUSD = borrowQBTEarnInUSD.add(marketBorrowInUSD.mul(marketData.apyMyBorrowQBT).div(1e18));
-            totalInUSD = totalInUSD.add(marketSupplyInUSD).add(marketBorrowInUSD);
-
-            portfolioData.supplyInUSD = portfolioData.supplyInUSD.add(marketSupplyInUSD);
-            portfolioData.borrowInUSD = portfolioData.borrowInUSD.add(marketBorrowInUSD);
-            if (marketData.membership) {
-                portfolioData.limitInUSD = portfolioData.limitInUSD.add(
-                    marketSupplyInUSD.mul(marketData.collateralFactor).div(1e18)
-                );
-            }
-        }
-        if (totalInUSD > 0) {
-            if (supplyEarnInUSD.add(supplyQBTEarnInUSD).add(borrowQBTEarnInUSD) > borrowInterestInUSD) {
-                portfolioData.userApy = int(
-                    supplyEarnInUSD
-                        .add(supplyQBTEarnInUSD)
-                        .add(borrowQBTEarnInUSD)
-                        .sub(borrowInterestInUSD)
-                        .mul(1e18)
-                        .div(totalInUSD)
-                );
-            } else {
-                portfolioData.userApy =
-                    int(-1) *
-                    int(
-                        borrowInterestInUSD
-                            .sub(supplyEarnInUSD.add(supplyQBTEarnInUSD).add(borrowQBTEarnInUSD))
-                            .mul(1e18)
-                            .div(totalInUSD)
-                    );
-            }
-            portfolioData.userApySupply = supplyEarnInUSD.mul(1e18).div(totalInUSD);
-            portfolioData.userApySupplyQBT = supplyQBTEarnInUSD.mul(1e18).div(totalInUSD);
-            portfolioData.userApyBorrow = borrowInterestInUSD.mul(1e18).div(totalInUSD);
-            portfolioData.userApyBorrowQBT = borrowQBTEarnInUSD.mul(1e18).div(totalInUSD);
-        }
-
-        return portfolioData;
-    }
-
-    function getUserLiquidityData(uint page, uint resultPerPage)
-        external
-        view
-        returns (AccountLiquidityData[] memory, uint next)
-    {
+    function liquidationStates(uint page, uint resultPerPage) external view override returns (LiquidationState[] memory, uint next) {
         uint index = page.mul(resultPerPage);
         uint limit = page.add(1).mul(resultPerPage);
         next = page.add(1);
@@ -275,90 +186,83 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
         }
 
         if (qore.getTotalUserList().length == 0 || index > qore.getTotalUserList().length - 1) {
-            return (new AccountLiquidityData[](0), 0);
+            return (new LiquidationState[](0), 0);
         }
 
-        AccountLiquidityData[] memory segment = new AccountLiquidityData[](limit.sub(index));
+        LiquidationState[] memory segment = new LiquidationState[](limit.sub(index));
 
         uint cursor = 0;
         for (index; index < limit; index++) {
             if (index < qore.getTotalUserList().length) {
                 address account = qore.getTotalUserList()[index];
-                uint marketCount = qore.marketListOf(account).length;
-                (uint collateralUSD, uint borrowUSD) = qValidator.getAccountLiquidityValue(account);
-                segment[cursor] = AccountLiquidityData({
-                    account: account,
-                    marketCount: marketCount,
-                    collateralUSD: collateralUSD,
-                    borrowUSD: borrowUSD
-                });
+                (uint collateralUSD,, uint borrowUSD) = qore.accountLiquidityOf(account);
+                segment[cursor] = LiquidationState(account, qore.marketListOf(account).length, collateralUSD, borrowUSD);
             }
             cursor++;
         }
         return (segment, next);
-        //
-        //        uint start;
-        //        uint size;
-        //        if (pageSize == 0) {
-        //            start = 0;
-        //            size = totalUserList.length;
-        //        } else if (totalUserList.length < pageSize) {
-        //            start = 0;
-        //            size = page == 0 ? totalUserList.length : 0;
-        //        } else {
-        //            start = page.mul(pageSize);
-        //            if (start <= totalUserList.length) {
-        //                if (page == totalUserList.length.div(pageSize)) {
-        //                    size = totalUserList.length.mod(pageSize);
-        //                } else {
-        //                    size = pageSize;
-        //                }
-        //            } else {
-        //                size = 0;
-        //            }
-        //        }
-        //
-        //        AccountPortfolio[] memory portfolioList = new AccountPortfolio[](size);
-        //        for (uint i = start; i < start.add(size); i ++) {
-        //            portfolioList[i.sub(start)].userAddress = totalUserList[i];
-        //            (portfolioList[i.sub(start)].collateralUSD, portfolioList[i.sub(start)].borrowUSD) = qValidator.getAccountLiquidityValue(totalUserList[i]);
-        //            portfolioList[i.sub(start)].marketListLength = marketListOfUsers[totalUserList[i]].length;
-        //        }
-        //        return portfolioList;
     }
 
-    function getUnclaimedQBT(address account) public view returns (uint unclaimedQBT) {
-        address[] memory markets = qore.allMarkets();
+    /* ========== PRIVATE FUNCTIONS ========== */
 
+    function _calculateAccAccountSupplyAPYOf(address account, address[] memory markets, uint[] memory prices, uint totalValueInUSD) private view returns (uint accApySupply, uint accApySupplyQBT) {
         for (uint i = 0; i < markets.length; i++) {
-            unclaimedQBT = unclaimedQBT.add(qDistributor.accruedQubit(markets[i], account));
+            QConstant.DistributionAPY memory apyDistribution = qore.apyDistributionOf(markets[i], account);
+
+            uint supplyInUSD = IQToken(markets[i]).underlyingBalanceOf(account).mul(prices[i]).div(1e18);
+            accApySupply = accApySupply.add(supplyInUSD.mul(IQToken(markets[i]).supplyRatePerSec().mul(365 days)).div(1e18));
+            accApySupplyQBT = accApySupplyQBT.add(supplyInUSD.mul(apyDistribution.apyAccountSupplyQBT).div(1e18));
         }
+
+        accApySupply = totalValueInUSD > 0 ? accApySupply.mul(1e18).div(totalValueInUSD) : 0;
+        accApySupplyQBT = totalValueInUSD > 0 ? accApySupplyQBT.mul(1e18).div(totalValueInUSD) : 0;
     }
 
-    function getAvgBoost(address account) public view returns (uint) {
-        address[] memory markets = qore.allMarkets();
-        uint boostSum;
-        uint boostNum;
-
+    function _calculateAccAccountBorrowAPYOf(address account, address[] memory markets, uint[] memory prices, uint totalValueInUSD) private view returns (uint accApyBorrow, uint accApyBorrowQBT) {
         for (uint i = 0; i < markets.length; i++) {
-            (uint userBoostedSupply, uint userBoostedBorrow) = qDistributor.boostedBalanceOf(markets[i], account);
-            uint userSupply = IQToken(markets[i]).balanceOf(account);
-            uint userBorrow = IQToken(markets[i]).borrowBalanceOf(account).mul(1e18).div(
-                IQToken(markets[i]).getAccInterestIndex()
-            );
+            QConstant.DistributionAPY memory apyDistribution = qore.apyDistributionOf(markets[i], account);
 
-            uint supplyBoost = (userSupply > 0) ? userBoostedSupply.mul(1e18).div(userSupply).mul(250).div(100) : 0;
-            uint borrowBoost = (userBorrow > 0) ? userBoostedBorrow.mul(1e18).div(userBorrow).mul(250).div(100) : 0;
+            uint borrowInUSD = IQToken(markets[i]).borrowBalanceOf(account).mul(prices[i]).div(1e18);
+            accApyBorrow = accApyBorrow.add(borrowInUSD.mul(IQToken(markets[i]).borrowRatePerSec().mul(365 days)).div(1e18));
+            accApyBorrowQBT = accApyBorrowQBT.add(borrowInUSD.mul(apyDistribution.apyAccountBorrowQBT).div(1e18));
+        }
 
-            if (supplyBoost > 0) {
-                boostSum = boostSum.add(supplyBoost);
-                boostNum = boostNum.add(1);
+        accApyBorrow = totalValueInUSD > 0 ? accApyBorrow.mul(1e18).div(totalValueInUSD) : 0;
+        accApyBorrowQBT = totalValueInUSD > 0 ? accApyBorrowQBT.mul(1e18).div(totalValueInUSD) : 0;
+    }
+
+    function _calculateAccAccountAverageBoostedRatio(address account, address[] memory markets) public view returns (uint averageBoostedRatio) {
+        uint accBoostedCount = 0;
+        for (uint i = 0; i < markets.length; i++) {
+            (uint boostedSupplyRatio, uint boostedBorrowRatio) = qore.boostedRatioOf(markets[i], account);
+
+            if (boostedSupplyRatio > 0) {
+                averageBoostedRatio = averageBoostedRatio.add(boostedSupplyRatio);
+                accBoostedCount++;
             }
-            if (borrowBoost > 0) {
-                boostSum = boostSum.add(borrowBoost);
-                boostNum = boostNum.add(1);
+
+            if (boostedBorrowRatio > 0) {
+                averageBoostedRatio = averageBoostedRatio.add(boostedBorrowRatio);
+                accBoostedCount++;
             }
         }
-        return (boostNum > 0) ? boostSum.div(boostNum) : 0;
+        return accBoostedCount > 0 ? averageBoostedRatio.div(accBoostedCount) : 0;
+    }
+
+    function _calculateAccMarketAverageBoostedRatio(address[] memory markets) public view returns (uint averageBoostedRatio) {
+        uint accValueInUSD = 0;
+        uint accBoostedValueInUSD = 0;
+
+        uint[] memory prices = priceCalculator.getUnderlyingPrices(markets);
+        for (uint i = 0; i < markets.length; i++) {
+            QConstant.DistributionInfo memory distributionInfo = qore.distributionInfoOf(markets[i]);
+
+            accBoostedValueInUSD = accBoostedValueInUSD.add(distributionInfo.totalBoostedSupply.mul(IQToken(markets[i]).exchangeRate()).mul(prices[i]).div(1e36));
+            accBoostedValueInUSD = accBoostedValueInUSD.add(distributionInfo.totalBoostedBorrow.mul(prices[i]).div(1e18));
+
+            accValueInUSD = accValueInUSD.add(IQToken(markets[i]).totalSupply().mul(IQToken(markets[i]).exchangeRate()).mul(prices[i]).div(1e36));
+            accValueInUSD = accValueInUSD.add(IQToken(markets[i]).totalBorrow().mul(prices[i]).div(1e18));
+        }
+        return accValueInUSD > 0 ? accBoostedValueInUSD.mul(1e18).div(accValueInUSD) : 0;
     }
 }

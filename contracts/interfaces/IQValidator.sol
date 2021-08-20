@@ -62,12 +62,5 @@ interface IQValidator {
         uint actualRepayAmount
     ) external returns (uint qTokenAmount);
 
-    function getAccountLiquidity(
-        address account,
-        address qToken,
-        uint redeemAmount,
-        uint borrowAmount
-    ) external view returns (uint liquidity, uint shortfall);
-
-    function getAccountLiquidityValue(address account) external view returns (uint collateralUSD, uint borrowUSD);
+    function getAccountLiquidity(address account) external view returns (uint collateralInUSD, uint supplyInUSD, uint borrowInUSD);
 }

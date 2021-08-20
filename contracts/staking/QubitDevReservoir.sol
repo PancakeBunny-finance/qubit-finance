@@ -39,9 +39,9 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@pancakeswap/pancake-swap-lib/contracts/token/BEP20/IBEP20.sol";
-import "./library/WhitelistUpgradeable.sol";
-import "./library/SafeToken.sol";
-import "./interfaces/IQubitLocker.sol";
+import "../library/WhitelistUpgradeable.sol";
+import "../library/SafeToken.sol";
+import "../interfaces/IQubitLocker.sol";
 
 contract QubitDevReservoir is WhitelistUpgradeable {
     using SafeMath for uint;

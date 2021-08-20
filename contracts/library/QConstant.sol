@@ -62,4 +62,29 @@ library QConstant {
         uint totalReserve;
         uint accInterestIndex;
     }
+
+    struct DistributionInfo {
+        uint supplySpeed;
+        uint borrowSpeed;
+        uint totalBoostedSupply;
+        uint totalBoostedBorrow;
+        uint accPerShareSupply;
+        uint accPerShareBorrow;
+        uint accruedAt;
+    }
+
+    struct DistributionAccountInfo {
+        uint accruedQubit;
+        uint boostedSupply; // effective(boosted) supply balance of user  (since last_action)
+        uint boostedBorrow; // effective(boosted) borrow balance of user  (since last_action)
+        uint accPerShareSupply; // Last integral value of Qubit rewards per share. ∫(qubitRate(t) / totalShare(t) dt) from 0 till (last_action)
+        uint accPerShareBorrow; // Last integral value of Qubit rewards per share. ∫(qubitRate(t) / totalShare(t) dt) from 0 till (last_action)
+    }
+
+    struct DistributionAPY {
+        uint apySupplyQBT;
+        uint apyBorrowQBT;
+        uint apyAccountSupplyQBT;
+        uint apyAccountBorrowQBT;
+    }
 }

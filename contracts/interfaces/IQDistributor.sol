@@ -36,47 +36,19 @@ pragma experimental ABIEncoderV2;
 * SOFTWARE.
 */
 
+import "../library/QConstant.sol";
+
 interface IQDistributor {
-    struct UserInfo {
-        uint accruedQubit;
-        uint boostedSupply; // effective(boosted) supply balance of user  (since last_action)
-        uint boostedBorrow; // effective(boosted) borrow balance of user  (since last_action)
-        uint accPerShareSupply; // Last integral value of Qubit rewards per share. ∫(qubitRate(t) / totalShare(t) dt) from 0 till (last_action)
-        uint accPerShareBorrow; // Last integral value of Qubit rewards per share. ∫(qubitRate(t) / totalShare(t) dt) from 0 till (last_action)
-    }
-
-    struct DistributionInfo {
-        uint supplyRate;
-        uint borrowRate;
-        uint totalBoostedSupply;
-        uint totalBoostedBorrow;
-        uint accPerShareSupply;
-        uint accPerShareBorrow;
-        uint accruedAt;
-    }
-
-    function accruedQubit(address market, address user) external view returns (uint);
-
-    function qubitRatesOf(address market) external view returns (uint supplyRate, uint borrowRate);
-
-    function totalBoosted(address market) external view returns (uint boostedSupply, uint boostedBorrow);
-
-    function boostedBalanceOf(address market, address account)
-        external
-        view
-        returns (uint boostedSupply, uint boostedBorrow);
+    function accruedQubit(address[] calldata markets, address account) external view returns (uint);
+    function distributionInfoOf(address market) external view returns (QConstant.DistributionInfo memory);
+    function accountDistributionInfoOf(address market, address account) external view returns (QConstant.DistributionAccountInfo memory);
+    function apyDistributionOf(address market, address account) external view returns (QConstant.DistributionAPY memory);
+    function boostedRatioOf(address market, address account) external view returns (uint boostedSupplyRatio, uint boostedBorrowRatio);
 
     function notifySupplyUpdated(address market, address user) external;
-
     function notifyBorrowUpdated(address market, address user) external;
+    function notifyTransferred(address qToken, address sender, address receiver) external;
 
-    function notifyTransferred(
-        address qToken,
-        address sender,
-        address receiver
-    ) external;
-
-    function claimQubit(address user) external;
-
+    function claimQubit(address[] calldata markets, address account) external;
     function kick(address user) external;
 }

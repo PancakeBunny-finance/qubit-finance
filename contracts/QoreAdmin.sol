@@ -59,7 +59,7 @@ abstract contract QoreAdmin is IQore, WhitelistUpgradeable, ReentrancyGuardUpgra
     address[] public markets; // qTokenAddress[]
     mapping(address => QConstant.MarketInfo) public marketInfos; // (qTokenAddress => MarketInfo)
 
-    uint public closeFactor;
+    uint public override closeFactor;
     uint public override liquidationIncentive;
 
     /* ========== Event ========== */

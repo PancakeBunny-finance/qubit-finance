@@ -65,13 +65,13 @@ abstract contract QMarket is IQToken, OwnableUpgradeable, ReentrancyGuardUpgrade
     address public override underlying;
 
     uint public override totalSupply;
-    uint public totalReserve;
+    uint public override totalReserve;
     uint private _totalBorrow;
 
     mapping(address => uint) internal accountBalances;
     mapping(address => QConstant.BorrowInfo) internal accountBorrows;
 
-    uint public reserveFactor;
+    uint public override reserveFactor;
     uint private lastAccruedTime;
     uint private accInterestIndex;
 

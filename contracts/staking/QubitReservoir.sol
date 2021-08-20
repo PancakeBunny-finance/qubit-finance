@@ -39,8 +39,8 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@pancakeswap/pancake-swap-lib/contracts/token/BEP20/IBEP20.sol";
-import "./library/WhitelistUpgradeable.sol";
-import "./library/SafeToken.sol";
+import "../library/WhitelistUpgradeable.sol";
+import "../library/SafeToken.sol";
 
 contract QubitReservoir is WhitelistUpgradeable {
     using SafeMath for uint;
@@ -123,10 +123,5 @@ contract QubitReservoir is WhitelistUpgradeable {
         dripped = dripped.add(amountToDrip);
         QBT.safeTransfer(receiver, amountToDrip);
         return amountToDrip;
-    }
-
-    function setStartAt(uint _startAt) public onlyOwner {
-        require(startAt <= _startAt, "QubitReservoir: invalid startAt");
-        startAt = _startAt;
     }
 }
