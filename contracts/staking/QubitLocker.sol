@@ -149,6 +149,7 @@ contract QubitLocker is IQubitLocker, WhitelistUpgradeable, ReentrancyGuardUpgra
 
         uint prevExpiry = expires[msg.sender];
         nextExpiry = truncateExpiry(nextExpiry);
+        require(block.timestamp < prevExpiry, "QubitLocker: expired lock");
         require(
             Math.max(prevExpiry, block.timestamp) < nextExpiry && nextExpiry <= block.timestamp + LOCK_UNIT_MAX,
             "QubitLocker: invalid expiry time"
