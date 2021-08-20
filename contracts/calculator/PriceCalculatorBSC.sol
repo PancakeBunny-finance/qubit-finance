@@ -52,8 +52,11 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
     using HomoraMath for uint;
 
     address public constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
+    address public constant MDX = 0x9C65AB58d8d978DB963e63f2bfB7121627e3a739;
+    address public constant BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
 
     IPancakeFactory private constant factory = IPancakeFactory(0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73);
+    IPancakeFactory private constant mdexFactory = IPancakeFactory(0x3CD1C46068dAEa5Ebb0d3f55F6915B10648062B8);
 
     /* ========== STATE VARIABLES ========== */
 
@@ -145,7 +148,7 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
         }
     }
 
-    function unsafeValueOfAsset(address asset, uint amount) public view returns (uint valueInBNB, uint valueInUSD) {
+    function unsafeValueOfAsset(address asset, uint amount) public view override returns (uint valueInBNB, uint valueInUSD) {
         valueInBNB = 0;
         valueInUSD = 0;
 
@@ -178,6 +181,20 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
                 }
                 valueInUSD = valueInBNB.mul(priceOfBNB()).div(1e18);
             }
+        } else if (asset == MDX) {
+            address pair = mdexFactory.getPair(MDX, BUSD);
+            if (IBEP20(MDX).balanceOf(pair) == 0) return (0, 0);
+            (uint reserve0, uint reserve1,) = IPancakePair(pair).getReserves();
+
+            (,uint priceOfBUSD) = _oracleValueOf(BUSD, 1e18);
+            if (IPancakePair(pair).token0() == BUSD) {
+                valueInUSD = reserve0.mul(amount).div(reserve1).mul(priceOfBUSD).div(1e18);
+            } else if (IPancakePair(pair).token1() == BUSD) {
+                valueInUSD = reserve1.mul(amount).div(reserve0).mul(priceOfBUSD).div(1e18);
+            } else {
+                return (0, 0);
+            }
+            valueInBNB = valueInUSD.mul(1e18).div(priceOfBNB());
         } else {
             address pair = factory.getPair(asset, WBNB);
             if (IBEP20(asset).balanceOf(pair) == 0) return (0, 0);
