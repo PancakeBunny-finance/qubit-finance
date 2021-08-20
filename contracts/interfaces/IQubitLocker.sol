@@ -51,8 +51,6 @@ interface IQubitLocker {
 
     function availableOf(address account) external view returns (uint);
 
-    function balanceExpiryOf(address account) external view returns (uint balance, uint expiry);
-
     function totalScore() external view returns (uint score, uint slope);
 
     function scoreOf(address account) external view returns (uint);
@@ -63,11 +61,7 @@ interface IQubitLocker {
 
     function withdraw() external;
 
-    function depositBehalf(
-        address account,
-        uint amount,
-        uint unlockTime
-    ) external;
+    function depositBehalf(address account, uint amount, uint unlockTime) external;
 
     function withdrawBehalf(address account) external;
 }

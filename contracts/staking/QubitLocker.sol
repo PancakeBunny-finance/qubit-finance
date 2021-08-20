@@ -89,10 +89,6 @@ contract QubitLocker is IQubitLocker, WhitelistUpgradeable, ReentrancyGuardUpgra
         return expires[account] < block.timestamp ? balances[account] : 0;
     }
 
-    function balanceExpiryOf(address account) external view override returns (uint balance, uint expiry) {
-        return (balances[account], expires[account]);
-    }
-
     function totalScore() public view override returns (uint score, uint slope) {
         score = _lastTotalScore;
         slope = _lastSlope;
@@ -179,11 +175,7 @@ contract QubitLocker is IQubitLocker, WhitelistUpgradeable, ReentrancyGuardUpgra
         QBT.safeTransfer(msg.sender, amount);
     }
 
-    function depositBehalf(
-        address account,
-        uint amount,
-        uint expiry
-    ) external override onlyWhitelisted nonReentrant {
+    function depositBehalf(address account, uint amount, uint expiry) external override onlyWhitelisted nonReentrant {
         require(amount > 0, "QubitLocker: invalid amount");
 
         expiry = balances[account] == 0 ? truncateExpiry(expiry) : expires[account];
@@ -228,11 +220,7 @@ contract QubitLocker is IQubitLocker, WhitelistUpgradeable, ReentrancyGuardUpgra
         _lastTimestamp = block.timestamp;
     }
 
-    function _updateTotalScoreExtendingLock(
-        uint amount,
-        uint prevExpiry,
-        uint nextExpiry
-    ) private {
+    function _updateTotalScoreExtendingLock(uint amount, uint prevExpiry, uint nextExpiry) private {
         (uint score, uint slope) = totalScore();
 
         uint deltaScore = nextExpiry.sub(prevExpiry).mul(amount.div(LOCK_UNIT_MAX));
