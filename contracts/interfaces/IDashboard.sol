@@ -32,6 +32,7 @@ interface IDashboard {
         uint collateralFactor;
         uint exchangeRate;
         uint borrowCap;
+        uint accInterestIndex;
     }
 
     struct MembershipData {

@@ -124,6 +124,7 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
         marketData.collateralFactor = qore.marketInfoOf(market).collateralFactor;
         marketData.exchangeRate = qToken.exchangeRate();
         marketData.borrowCap = qore.marketInfoOf(market).borrowCap;
+        marketData.accInterestIndex = qToken.getAccInterestIndex();
         return marketData;
     }
 
