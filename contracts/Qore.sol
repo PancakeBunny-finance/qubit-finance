@@ -214,6 +214,8 @@ contract Qore is QoreAdmin {
     ) external payable override nonReentrant {
         amount = IQToken(qTokenBorrowed).underlying() == address(WBNB) ? msg.value : amount;
         require(marketInfos[qTokenBorrowed].isListed && marketInfos[qTokenCollateral].isListed, "Qore: invalid market");
+        require(usersOfMarket[qTokenCollateral][borrower], "Qore: not a collateral");
+        require(marketInfos[qTokenCollateral].collateralFactor > 0, "Qore: not a collateral");
         require(
             IQValidator(qValidator).liquidateAllowed(qTokenBorrowed, borrower, amount, closeFactor),
             "Qore: cannot liquidate borrow"
