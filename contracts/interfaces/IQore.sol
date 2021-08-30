@@ -56,7 +56,6 @@ interface IQore {
 
     function closeFactor() external view returns (uint);
     function liquidationIncentive() external view returns (uint);
-    function getTotalUserList() external view returns (address[] memory);
 
     function accruedQubit(address account) external view returns (uint);
     function accruedQubit(address market, address account) external view returns (uint);

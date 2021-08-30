@@ -53,7 +53,7 @@ contract Qore is QoreAdmin {
 
     mapping(address => address[]) public marketListOfUsers; // (account => qTokenAddress[])
     mapping(address => mapping(address => bool)) public usersOfMarket; // (qTokenAddress => (account => joined))
-    address[] public totalUserList;
+    address[] public totalUserList; // do not use
 
     /* ========== INITIALIZER ========== */
 
@@ -91,38 +91,34 @@ contract Qore is QoreAdmin {
     }
 
     function distributionInfoOf(address market) external view override returns (QConstant.DistributionInfo memory) {
-        return IQDistributor(qDistributor).distributionInfoOf(market);
+        return qDistributor.distributionInfoOf(market);
     }
 
     function accountDistributionInfoOf(address market, address account) external view override returns (QConstant.DistributionAccountInfo memory) {
-        return IQDistributor(qDistributor).accountDistributionInfoOf(market, account);
+        return qDistributor.accountDistributionInfoOf(market, account);
     }
 
     function apyDistributionOf(address market, address account) external view override returns (QConstant.DistributionAPY memory) {
-        return IQDistributor(qDistributor).apyDistributionOf(market, account);
+        return qDistributor.apyDistributionOf(market, account);
     }
 
     function distributionSpeedOf(address qToken) external view override returns (uint supplySpeed, uint borrowSpeed) {
-        QConstant.DistributionInfo memory distribution = IQDistributor(qDistributor).distributionInfoOf(qToken);
+        QConstant.DistributionInfo memory distribution = qDistributor.distributionInfoOf(qToken);
         return (distribution.supplySpeed, distribution.borrowSpeed);
     }
 
     function boostedRatioOf(address market, address account) external view override returns (uint boostedSupplyRatio, uint boostedBorrowRatio) {
-        return IQDistributor(qDistributor).boostedRatioOf(market, account);
+        return qDistributor.boostedRatioOf(market, account);
     }
 
     function accruedQubit(address account) external view override returns (uint) {
-        return IQDistributor(qDistributor).accruedQubit(markets, account);
+        return qDistributor.accruedQubit(markets, account);
     }
 
     function accruedQubit(address market, address account) external view override returns (uint) {
         address[] memory _markets = new address[](1);
         _markets[0] = market;
-        return IQDistributor(qDistributor).accruedQubit(_markets, account);
-    }
-
-    function getTotalUserList() external view override returns (address[] memory) {
-        return totalUserList;
+        return qDistributor.accruedQubit(_markets, account);
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -234,26 +230,13 @@ contract Qore is QoreAdmin {
     }
 
     function claimQubit() external override nonReentrant {
-        IQDistributor(qDistributor).claimQubit(markets, msg.sender);
+        qDistributor.claimQubit(markets, msg.sender);
     }
 
     function claimQubit(address market) external override nonReentrant {
         address[] memory _markets = new address[](1);
         _markets[0] = market;
-        IQDistributor(qDistributor).claimQubit(_markets, msg.sender);
-    }
-
-    function removeUserFromList(address _account) external onlyKeeper {
-        require(marketListOfUsers[_account].length == 0, "Qore: cannot remove user");
-
-        uint length = totalUserList.length;
-        for (uint i = 0; i < length; i++) {
-            if (totalUserList[i] == _account) {
-                totalUserList[i] = totalUserList[length - 1];
-                totalUserList.pop();
-                break;
-            }
-        }
+        qDistributor.claimQubit(_markets, msg.sender);
     }
 
     /* ========== PRIVATE FUNCTIONS ========== */
@@ -261,9 +244,6 @@ contract Qore is QoreAdmin {
     function _enterMarket(address qToken, address _account) internal onlyListedMarket(qToken) {
         if (!usersOfMarket[qToken][_account]) {
             usersOfMarket[qToken][_account] = true;
-            if (marketListOfUsers[_account].length == 0) {
-                totalUserList.push(_account);
-            }
             marketListOfUsers[_account].push(qToken);
             emit MarketEntered(qToken, _account);
         }
