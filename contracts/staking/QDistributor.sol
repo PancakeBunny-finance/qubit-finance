@@ -254,6 +254,9 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
     }
 
     function kick(address user) external override nonReentrant {
+        if (block.timestamp < LAUNCH_TIMESTAMP)
+            return;
+
         require(qubitLocker.scoreOf(user) == 0, "QDistributor: kick not allowed");
 
         address[] memory markets = qore.allMarkets();
