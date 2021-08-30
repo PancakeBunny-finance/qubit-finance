@@ -176,34 +176,6 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
         return lockerInfo;
     }
 
-    function liquidationStates(uint page, uint resultPerPage) external view override returns (LiquidationState[] memory, uint next) {
-        uint index = page.mul(resultPerPage);
-        uint limit = page.add(1).mul(resultPerPage);
-        next = page.add(1);
-
-        if (limit > qore.getTotalUserList().length) {
-            limit = qore.getTotalUserList().length;
-            next = 0;
-        }
-
-        if (qore.getTotalUserList().length == 0 || index > qore.getTotalUserList().length - 1) {
-            return (new LiquidationState[](0), 0);
-        }
-
-        LiquidationState[] memory segment = new LiquidationState[](limit.sub(index));
-
-        uint cursor = 0;
-        for (index; index < limit; index++) {
-            if (index < qore.getTotalUserList().length) {
-                address account = qore.getTotalUserList()[index];
-                (uint collateralUSD,, uint borrowUSD) = qore.accountLiquidityOf(account);
-                segment[cursor] = LiquidationState(account, qore.marketListOf(account).length, collateralUSD, borrowUSD);
-            }
-            cursor++;
-        }
-        return (segment, next);
-    }
-
     /* ========== PRIVATE FUNCTIONS ========== */
 
     function _calculateAccAccountSupplyAPYOf(address account, address[] memory markets, uint[] memory prices, uint totalValueInUSD) private view returns (uint accApySupply, uint accApySupplyQBT) {

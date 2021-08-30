@@ -67,18 +67,10 @@ interface IDashboard {
         uint expiry;
     }
 
-    struct LiquidationState {
-        address account;
-        uint marketCount;
-        uint collateralUSD;
-        uint borrowUSD;
-    }
-
     function qubitDataOf(address[] memory markets, address account) external view returns (QubitData memory);
 
     function marketDataOf(address market) external view returns (MarketData memory);
     function membershipDataOf(address market, address account) external view returns (MembershipData memory);
     function accountAccDataOf(address account) external view returns (AccountAccData memory);
     function lockerDataOf(address account) external view returns (LockerData memory);
-    function liquidationStates(uint page, uint resultPerPage) external view returns (LiquidationState[] memory, uint next);
 }
