@@ -108,9 +108,12 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
     /* ========== VIEWS ========== */
 
     function priceOf(address asset) public view override returns (uint priceInUSD) {
-        uint assetDecimals = asset == address(0) ? 1e18 : 10 ** uint(IBEP20(asset).decimals());
-        (, priceInUSD) = _oracleValueOf(asset, assetDecimals);
-        return priceInUSD;
+        if (asset == address(0)) {
+            return priceOfBNB();
+        }
+        uint decimals = uint(IBEP20(asset).decimals());
+        uint unitAmount = 10 ** decimals;
+        return _oracleValueInUSDOf(asset, unitAmount, decimals);
     }
 
     function pricesOf(address[] memory assets) public view override returns (uint[] memory) {
@@ -246,5 +249,16 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
             valueInUSD = references[asset].lastData.mul(amount).div(assetDecimals);
         }
         valueInBNB = valueInUSD.mul(1e18).div(priceOfBNB());
+    }
+
+    function _oracleValueInUSDOf(address asset, uint amount, uint decimals) private view returns (uint valueInUSD) {
+        valueInUSD = 0;
+        uint assetDecimals = asset == address(0) ? 1e18 : 10 ** decimals;
+        if (tokenFeeds[asset] != address(0)) {
+            (, int price, , ,) = AggregatorV3Interface(tokenFeeds[asset]).latestRoundData();
+            valueInUSD = uint(price).mul(1e10).mul(amount).div(assetDecimals);
+        } else if (references[asset].lastUpdated > block.timestamp.sub(1 days)) {
+            valueInUSD = references[asset].lastData.mul(amount).div(assetDecimals);
+        }
     }
 }
