@@ -71,6 +71,18 @@ contract Qore is QoreAdmin {
         _;
     }
 
+    modifier onlyMarket() {
+        bool fromMarket = false;
+        for (uint i = 0; i < markets.length; i++) {
+            if (msg.sender == markets[i]) {
+                fromMarket = true;
+                break;
+            }
+        }
+        require(fromMarket == true, "Qore: caller should be market");
+        _;
+    }
+
     /* ========== VIEWS ========== */
 
     function allMarkets() external view override returns (address[] memory) {
@@ -230,6 +242,7 @@ contract Qore is QoreAdmin {
             amount
         );
         IQToken(qTokenCollateral).seize(msg.sender, borrower, qAmountToSeize);
+        qDistributor.notifyTransferred(qTokenCollateral, borrower, msg.sender);
         qDistributor.notifyBorrowUpdated(qTokenBorrowed, borrower);
     }
 
@@ -241,6 +254,11 @@ contract Qore is QoreAdmin {
         address[] memory _markets = new address[](1);
         _markets[0] = market;
         qDistributor.claimQubit(_markets, msg.sender);
+    }
+
+    function transferTokens(address spender, address src, address dst, uint amount) external override nonReentrant onlyMarket {
+        IQToken(msg.sender).transferTokensInternal(spender, src, dst, amount);
+        qDistributor.notifyTransferred(msg.sender, src, dst);
     }
 
     /* ========== RESTRICTED FUNCTION FOR WHITELIST ========== */

@@ -101,19 +101,6 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         _;
     }
 
-    modifier onlyMarket() {
-        bool fromMarket = false;
-        address[] memory markets = qore.allMarkets();
-        for (uint i = 0; i < markets.length; i++) {
-            if (msg.sender == markets[i]) {
-                fromMarket = true;
-                break;
-            }
-        }
-        require(fromMarket == true, "QDistributor: caller should be market");
-        _;
-    }
-
     /* ========== EVENTS ========== */
 
     event QubitDistributionSpeedUpdated(address indexed qToken, uint supplySpeed, uint borrowSpeed);
@@ -205,7 +192,7 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         userInfo.boostedBorrow = boostedBorrow;
     }
 
-    function notifyTransferred(address qToken, address sender, address receiver) external override nonReentrant onlyMarket updateDistributionOf(qToken) {
+    function notifyTransferred(address qToken, address sender, address receiver) external override nonReentrant onlyQore updateDistributionOf(qToken) {
         if (block.timestamp < LAUNCH_TIMESTAMP)
             return;
 

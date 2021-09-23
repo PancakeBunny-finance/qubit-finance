@@ -101,6 +101,8 @@ interface IQToken {
 
     function seize(address liquidator, address borrower, uint qTokenAmount) external;
 
+    function transferTokensInternal(address spender, address src, address dst, uint amount) external;
+
     function transferUnderlyingTo(address receiver, uint amount) external;
     function transferUnderlyingFromWithFee(address sender, uint amount, uint fee) external;
 }

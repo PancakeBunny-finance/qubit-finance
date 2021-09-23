@@ -38,7 +38,6 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/Math.sol";
 
-import "../interfaces/IQDistributor.sol";
 import "../interfaces/IWETH.sol";
 import "../library/SafeToken.sol";
 import "./QMarket.sol";
@@ -46,10 +45,6 @@ import "./QMarket.sol";
 contract QToken is QMarket {
     using SafeMath for uint;
     using SafeToken for address;
-
-    /* ========== CONSTANT ========== */
-
-    IQDistributor public constant qDistributor = IQDistributor(0x67B806ab830801348ce719E0705cC2f2718117a1);
 
     /* ========== STATE VARIABLES ========== */
 
@@ -104,7 +99,7 @@ contract QToken is QMarket {
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     function transfer(address dst, uint amount) external override accrue nonReentrant returns (bool) {
-        _transferTokens(msg.sender, msg.sender, dst, amount);
+        qore.transferTokens(msg.sender, msg.sender, dst, amount);
         return true;
     }
 
@@ -113,7 +108,7 @@ contract QToken is QMarket {
         address dst,
         uint amount
     ) external override accrue nonReentrant returns (bool) {
-        _transferTokens(msg.sender, src, dst, amount);
+        qore.transferTokens(msg.sender, src, dst, amount);
         return true;
     }
 
@@ -193,11 +188,35 @@ contract QToken is QMarket {
         address liquidator,
         address borrower,
         uint qAmount
-    ) external override accrue onlyQore {
+    ) external override accrue onlyQore nonReentrant {
         accountBalances[borrower] = accountBalances[borrower].sub(qAmount);
         accountBalances[liquidator] = accountBalances[liquidator].add(qAmount);
-        qDistributor.notifyTransferred(address(this), borrower, liquidator);
+
         emit Transfer(borrower, liquidator, qAmount);
+    }
+
+    function transferTokensInternal(
+        address spender,
+        address src,
+        address dst,
+        uint amount
+    ) external override onlyQore {
+        require(
+            src != dst && IQValidator(qore.qValidator()).redeemAllowed(address(this), src, amount),
+            "QToken: cannot transfer"
+        );
+        require(amount != 0, "QToken: zero amount");
+
+        uint _allowance = spender == src ? uint(-1) : _transferAllowances[src][spender];
+        uint _allowanceNew = _allowance.sub(amount, "QToken: transfer amount exceeds allowance");
+
+        accountBalances[src] = accountBalances[src].sub(amount);
+        accountBalances[dst] = accountBalances[dst].add(amount);
+
+        if (_allowance != uint(-1)) {
+            _transferAllowances[src][spender] = _allowanceNew;
+        }
+        emit Transfer(src, dst, amount);
     }
 
     /* ========== RESTRICTED FUNCTIONS FOR FLASHLOANS ========== */
@@ -218,32 +237,6 @@ contract QToken is QMarket {
     }
 
     /* ========== PRIVATE FUNCTIONS ========== */
-
-    function _transferTokens(
-        address spender,
-        address src,
-        address dst,
-        uint amount
-    ) private {
-        require(
-            src != dst && IQValidator(qore.qValidator()).redeemAllowed(address(this), src, amount),
-            "QToken: cannot transfer"
-        );
-        require(amount != 0, "QToken: zero amount");
-
-        uint _allowance = spender == src ? uint(-1) : _transferAllowances[src][spender];
-        uint _allowanceNew = _allowance.sub(amount, "QToken: transfer amount exceeds allowance");
-
-        accountBalances[src] = accountBalances[src].sub(amount);
-        accountBalances[dst] = accountBalances[dst].add(amount);
-
-        qDistributor.notifyTransferred(address(this), src, dst);
-
-        if (_allowance != uint(-1)) {
-            _transferAllowances[src][msg.sender] = _allowanceNew;
-        }
-        emit Transfer(src, dst, amount);
-    }
 
     function _doTransferIn(address from, uint amount) private returns (uint) {
         if (underlying == address(WBNB)) {
