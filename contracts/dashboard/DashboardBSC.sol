@@ -43,6 +43,7 @@ import "../interfaces/IQToken.sol";
 import "../interfaces/IQore.sol";
 import "../interfaces/IDashboard.sol";
 import "../interfaces/IQubitLocker.sol";
+import "../interfaces/IBEP20.sol";
 
 
 contract DashboardBSC is IDashboard, OwnableUpgradeable {
@@ -174,6 +175,27 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
         lockerInfo.available = qubitLocker.availableOf(account);
         lockerInfo.expiry = qubitLocker.expiryOf(account);
         return lockerInfo;
+    }
+
+    function totalValueLockedOf(address[] memory markets) public view returns (uint totalSupplyInUSD) {
+        uint[] memory prices = priceCalculator.getUnderlyingPrices(markets);
+        for (uint i = 0; i < markets.length; i++) {
+            uint supplyInUSD = IQToken(markets[i]).getCash().mul(IQToken(markets[i]).exchangeRate()).div(1e18);
+            totalSupplyInUSD = totalSupplyInUSD.add(supplyInUSD.mul(prices[i]).div(1e18));
+        }
+        return totalSupplyInUSD;
+    }
+
+    function totalCirculating() public view returns (uint) {
+        return IBEP20(QBT).totalSupply()
+                .sub(IBEP20(QBT).balanceOf(0xa7bc9a205A46017F47949F5Ee453cEBFcf42121b))      // reward Lock
+                .sub(IBEP20(QBT).balanceOf(0xB224eD67C2F89Ae97758a9DB12163A6f30830EB2))      // developer's Supply Lock
+                .sub(IBEP20(QBT).balanceOf(0x4c97c901B5147F8C1C7Ce3c5cF3eB83B44F244fE))      // MND Vault Lock
+                .sub(IBEP20(QBT).balanceOf(0xB56290bEfc4216dc2A526a9022A76A1e4FDf122b))      // marketing Treasury
+                .sub(IBEP20(QBT).balanceOf(0xAAf5d0dB947F835287b9432F677A51e9a1a01a35))      // security Treasury
+                .sub(IBEP20(QBT).balanceOf(0xc7939B1Fa2E7662592b4d11dbE3C331bEE18FC85))      // Dev Treasury
+                .sub(qubitLocker.balanceOf(0x12C62464D8CF4a9Ca6f2EEAd1d7954A9fC21d053))      // QubitPool (lock forever)
+                .sub(IBEP20(QBT).balanceOf(0x67B806ab830801348ce719E0705cC2f2718117a1));     // reward Distributor (QDistributor)
     }
 
     /* ========== PRIVATE FUNCTIONS ========== */
