@@ -231,7 +231,7 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
             QConstant.DistributionInfo memory distributionInfo = qore.distributionInfoOf(markets[i]);
 
             accBoostedValueInUSD = accBoostedValueInUSD.add(distributionInfo.totalBoostedSupply.mul(IQToken(markets[i]).exchangeRate()).mul(prices[i]).div(1e36));
-            accBoostedValueInUSD = accBoostedValueInUSD.add(distributionInfo.totalBoostedBorrow.mul(prices[i]).div(1e18));
+            accBoostedValueInUSD = accBoostedValueInUSD.add(distributionInfo.totalBoostedBorrow.mul(IQToken(markets[i]).getAccInterestIndex()).mul(prices[i]).div(1e36));
 
             accValueInUSD = accValueInUSD.add(IQToken(markets[i]).totalSupply().mul(IQToken(markets[i]).exchangeRate()).mul(prices[i]).div(1e36));
             accValueInUSD = accValueInUSD.add(IQToken(markets[i]).totalBorrow().mul(prices[i]).div(1e18));
