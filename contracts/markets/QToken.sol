@@ -130,9 +130,7 @@ contract QToken is QMarket {
         uAmount = underlying == address(WBNB) ? msg.value : uAmount;
         uAmount = _doTransferIn(account, uAmount);
         uint qAmount = uAmount.mul(1e18).div(exchangeRate);
-
-        totalSupply = totalSupply.add(qAmount);
-        accountBalances[account] = accountBalances[account].add(qAmount);
+        updateSupplyInfo(account, qAmount, 0);
 
         emit Mint(account, qAmount);
         emit Transfer(address(0), account, qAmount);
@@ -287,8 +285,7 @@ contract QToken is QMarket {
             "QToken: cannot redeem"
         );
 
-        totalSupply = totalSupply.sub(qAmountToRedeem);
-        accountBalances[account] = accountBalances[account].sub(qAmountToRedeem);
+        updateSupplyInfo(account, 0, qAmountToRedeem);
         _doTransferOut(account, uAmountToRedeem);
 
         emit Transfer(account, address(0), qAmountToRedeem);

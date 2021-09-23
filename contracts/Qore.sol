@@ -140,7 +140,6 @@ contract Qore is QoreAdmin {
             "Qore: cannot redeem"
         );
 
-        delete usersOfMarket[qToken][msg.sender];
         _removeUserMarket(qToken, msg.sender);
         emit MarketExited(qToken, msg.sender);
     }
@@ -293,6 +292,7 @@ contract Qore is QoreAdmin {
 
     function _removeUserMarket(address qTokenToExit, address _account) private {
         require(marketListOfUsers[_account].length > 0, "Qore: cannot pop user market");
+        delete usersOfMarket[qTokenToExit][_account];
 
         uint length = marketListOfUsers[_account].length;
         for (uint i = 0; i < length; i++) {
