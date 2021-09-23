@@ -75,6 +75,11 @@ abstract contract QoreAdmin is IQore, WhitelistUpgradeable, ReentrancyGuardUpgra
     event KeeperUpdated(address newKeeper);
     event QValidatorUpdated(address newQValidator);
     event QDistributorUpdated(address newQDistributor);
+    event FlashLoan(address indexed target,
+        address indexed initiator,
+        address indexed asset,
+        uint amount,
+        uint premium);
 
     /* ========== MODIFIERS ========== */
 

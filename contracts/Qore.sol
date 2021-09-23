@@ -39,6 +39,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interfaces/IQToken.sol";
 import "./interfaces/IQValidator.sol";
+import "./interfaces/IFlashLoanReceiver.sol";
 
 import "./QoreAdmin.sol";
 
@@ -48,6 +49,8 @@ contract Qore is QoreAdmin {
     /* ========== CONSTANT VARIABLES ========== */
 
     address internal constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
+
+    uint public constant FLASHLOAN_FEE = 5e14; // 0.05%
 
     /* ========== STATE VARIABLES ========== */
 
@@ -239,6 +242,43 @@ contract Qore is QoreAdmin {
         address[] memory _markets = new address[](1);
         _markets[0] = market;
         qDistributor.claimQubit(_markets, msg.sender);
+    }
+
+    /* ========== RESTRICTED FUNCTION FOR WHITELIST ========== */
+
+    function flashLoan(address receiverAddress, address[] calldata markets, uint[] calldata amounts, bytes calldata params) external override onlyWhitelisted {
+        require(markets.length == amounts.length, "Qore: inconsistent arguments");
+
+        uint[] memory fees = new uint[](markets.length);
+        address[] memory underlyings = new address[](markets.length);
+
+        IFlashLoanReceiver receiver = IFlashLoanReceiver(receiverAddress);
+
+        // send asset to receiver
+        for (uint i = 0; i < markets.length; i++) {
+            IQToken market = IQToken(markets[i]);
+            underlyings[i] = market.underlying();
+            require(market.getCash() > amounts[i], "Qore: not enough reserve");
+
+            fees[i] = amounts[i].mul(FLASHLOAN_FEE).div(1e18);
+
+            market.transferUnderlyingTo(receiverAddress, amounts[i]);
+        }
+
+        require(receiver.executeOperation(markets, amounts, fees, msg.sender, params),
+            "Qore: invalid flash loan executor");
+
+        // bring back asset from receiver
+        for (uint i = 0; i < markets.length; i++) {
+            IQToken market = IQToken(markets[i]);
+
+            market.transferUnderlyingFromWithFee(receiverAddress, amounts[i], fees[i]);
+
+            emit FlashLoan(receiverAddress, msg.sender,
+            underlyings[i],
+            amounts[i],
+            fees[i]);
+        }
     }
 
     /* ========== PRIVATE FUNCTIONS ========== */

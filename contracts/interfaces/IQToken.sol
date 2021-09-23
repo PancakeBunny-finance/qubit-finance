@@ -100,4 +100,7 @@ interface IQToken {
     function liquidateBorrow(address qTokenCollateral, address liquidator, address borrower, uint amount) external payable returns (uint qAmountToSeize);
 
     function seize(address liquidator, address borrower, uint qTokenAmount) external;
+
+    function transferUnderlyingTo(address receiver, uint amount) external;
+    function transferUnderlyingFromWithFee(address sender, uint amount, uint fee) external;
 }

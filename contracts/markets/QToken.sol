@@ -39,6 +39,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/Math.sol";
 
 import "../interfaces/IQDistributor.sol";
+import "../interfaces/IWETH.sol";
 import "../library/SafeToken.sol";
 import "./QMarket.sol";
 
@@ -199,6 +200,23 @@ contract QToken is QMarket {
         accountBalances[liquidator] = accountBalances[liquidator].add(qAmount);
         qDistributor.notifyTransferred(address(this), borrower, liquidator);
         emit Transfer(borrower, liquidator, qAmount);
+    }
+
+    /* ========== RESTRICTED FUNCTIONS FOR FLASHLOANS ========== */
+
+    function transferUnderlyingTo(address receiver, uint amount) external override onlyQore {
+        _doTransferOut(receiver, amount);
+    }
+
+    function transferUnderlyingFromWithFee(address sender, uint amount, uint fee) external override onlyQore {
+        uint amountIncludingFee = amount.add(fee);
+        if (underlying == address(WBNB)) {
+            underlying.safeTransferFrom(sender, address(this), amountIncludingFee);
+            IWETH(WBNB).withdraw(amountIncludingFee);
+        } else {
+            underlying.safeTransferFrom(sender, address(this), amountIncludingFee);
+        }
+        totalReserve = totalReserve.add(fee);
     }
 
     /* ========== PRIVATE FUNCTIONS ========== */

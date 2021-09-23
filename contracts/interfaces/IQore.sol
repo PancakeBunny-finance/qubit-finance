@@ -73,4 +73,6 @@ interface IQore {
 
     function claimQubit() external;
     function claimQubit(address market) external;
+
+    function flashLoan(address receiverAddress, address[] calldata markets, uint[] calldata amounts, bytes calldata params) external;
 }
