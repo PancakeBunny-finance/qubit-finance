@@ -252,7 +252,9 @@ contract QToken is QMarket {
         } else {
             uint balanceBefore = IBEP20(underlying).balanceOf(address(this));
             underlying.safeTransferFrom(from, address(this), amount);
-            return IBEP20(underlying).balanceOf(address(this)).sub(balanceBefore);
+            uint balanceAfter = IBEP20(underlying).balanceOf(address(this));
+            require(balanceAfter.sub(balanceBefore) <= amount);
+            return balanceAfter.sub(balanceBefore);
         }
     }
 
