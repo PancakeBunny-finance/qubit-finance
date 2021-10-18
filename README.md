@@ -9,12 +9,12 @@ Docs: https://qubit-finance.gitbook.io/qubit-finance/
 ## BSC Mainnet Contracts
 - ProxyAdmin: [0x40151e5d012E7de6000F7144288ef50af78882be](https://bscscan.com/address/0x40151e5d012E7de6000F7144288ef50af78882be)
 - QubitToken: [0x17B7163cf1Dbd286E262ddc68b553D899B93f526](https://bscscan.com/address/0x17B7163cf1Dbd286E262ddc68b553D899B93f526)
-- Qore: [0x21824518e7E443812586c96aB5B05E9F91831E06](https://bscscan.com/address/0x21824518e7E443812586c96aB5B05E9F91831E06)
+- Qore: [0xF70314eb9c7Fe7D88E6af5aa7F898b3A162dcd48](https://bscscan.com/address/0xF70314eb9c7Fe7D88E6af5aa7F898b3A162dcd48)
 - QValidator: [0x0cD79409eD80d8a153A3c729aa1f8b5D44A29282](https://bscscan.com/address/0x0cD79409eD80d8a153A3c729aa1f8b5D44A29282)
 
 - QubitLocker: [0xB8243be1D145a528687479723B394485cE3cE773](https://bscscan.com/address/0xB8243be1D145a528687479723B394485cE3cE773)
 - QDistributor: [0x67B806ab830801348ce719E0705cC2f2718117a1](https://bscscan.com/address/0x67B806ab830801348ce719E0705cC2f2718117a1)
-- DashboardBSC: [0x80D1486eF600cc56d4df9ed33bAF53C60D5A629b](https://bscscan.com/address/0x80D1486eF600cc56d4df9ed33bAF53C60D5A629b)
+- DashboardBSC: [0x3BF0EbF0B846Fff73Df543bACacC542A6CE9fc15](https://bscscan.com/address/0x3BF0EbF0B846Fff73Df543bACacC542A6CE9fc15)
 - QubitReservoir: [0xa7bc9a205A46017F47949F5Ee453cEBFcf42121b](https://bscscan.com/address/0xa7bc9a205A46017F47949F5Ee453cEBFcf42121b)
 - QubitDevReservoir: [0xB224eD67C2F89Ae97758a9DB12163A6f30830EB2](https://bscscan.com/address/0xB224eD67C2F89Ae97758a9DB12163A6f30830EB2)
 
