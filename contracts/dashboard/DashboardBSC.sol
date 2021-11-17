@@ -194,8 +194,11 @@ contract DashboardBSC is IDashboard, OwnableUpgradeable {
                 .sub(IBEP20(QBT).balanceOf(0xB56290bEfc4216dc2A526a9022A76A1e4FDf122b))      // marketing Treasury
                 .sub(IBEP20(QBT).balanceOf(0xAAf5d0dB947F835287b9432F677A51e9a1a01a35))      // security Treasury
                 .sub(IBEP20(QBT).balanceOf(0xc7939B1Fa2E7662592b4d11dbE3C331bEE18FC85))      // Dev Treasury
-                .sub(qubitLocker.balanceOf(0x12C62464D8CF4a9Ca6f2EEAd1d7954A9fC21d053))      // QubitPool (lock forever)
-                .sub(IBEP20(QBT).balanceOf(0x67B806ab830801348ce719E0705cC2f2718117a1));     // reward Distributor (QDistributor)
+//                .sub(qubitLocker.balanceOf(0x12C62464D8CF4a9Ca6f2EEAd1d7954A9fC21d053))      // QubitPool (lock forever)
+                .sub(qubitLocker.totalBalance())                                             // QubitLocker
+                .sub(IBEP20(QBT).balanceOf(0x67B806ab830801348ce719E0705cC2f2718117a1))      // reward Distributor (QDistributor)
+                .sub(IBEP20(QBT).balanceOf(0xD1ad1943b70340783eD9814ffEdcAaAe459B6c39))      // PCB QBT-BNB pool reward lock
+                .sub(IBEP20(QBT).balanceOf(0x89c527764f03BCb7dC469707B23b79C1D7Beb780));     // Orbit Bridge lock (displayed in Klaytn instead)
     }
 
     /* ========== PRIVATE FUNCTIONS ========== */
