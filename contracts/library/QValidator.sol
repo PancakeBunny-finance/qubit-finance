@@ -51,6 +51,8 @@ contract QValidator is IQValidator, OwnableUpgradeable {
     /* ========== CONSTANT VARIABLES ========== */
 
     IPriceCalculator public constant oracle = IPriceCalculator(0x20E5E35ba29dC3B540a1aee781D0814D5c77Bce6);
+    address private constant qQBT = 0xcD2CD343CFbe284220677C78A08B1648bFa39865;
+    uint private constant qbtPriceCollateralCap = 15e16;
 
     /* ========== STATE VARIABLES ========== */
 
@@ -74,9 +76,16 @@ contract QValidator is IQValidator, OwnableUpgradeable {
         for (uint i = 0; i < assets.length; i++) {
             require(prices[i] != 0, "QValidator: price error");
             QConstant.AccountSnapshot memory snapshot = IQToken(payable(assets[i])).accountSnapshot(account);
+            
+            uint priceCollateral;
+            if (assets[i] == qQBT && prices[i] > qbtPriceCollateralCap) {
+                priceCollateral = qbtPriceCollateralCap;
+            } else {
+                priceCollateral = prices[i];
+            }
 
             uint collateralFactor = qore.marketInfoOf(payable(assets[i])).collateralFactor;
-            uint collateralValuePerShareInUSD = snapshot.exchangeRate.mul(prices[i]).mul(collateralFactor).div(1e36);
+            uint collateralValuePerShareInUSD = snapshot.exchangeRate.mul(priceCollateral).mul(collateralFactor).div(1e36);
 
             collateralInUSD = collateralInUSD.add(snapshot.qTokenBalance.mul(collateralValuePerShareInUSD).div(1e18));
             supplyInUSD = supplyInUSD.add(snapshot.qTokenBalance.mul(snapshot.exchangeRate).mul(prices[i]).div(1e36));
@@ -172,11 +181,22 @@ contract QValidator is IQValidator, OwnableUpgradeable {
             require(prices[i] != 0, "QValidator: price error");
             QConstant.AccountSnapshot memory snapshot = IQToken(payable(assets[i])).accruedAccountSnapshot(account);
 
-            uint collateralValuePerShareInUSD = snapshot
-            .exchangeRate
-            .mul(prices[i])
-            .mul(qore.marketInfoOf(payable(assets[i])).collateralFactor)
-            .div(1e36);
+            uint collateralValuePerShareInUSD;
+            if (assets[i] == qQBT && prices[i] > qbtPriceCollateralCap) {
+                collateralValuePerShareInUSD = snapshot
+                .exchangeRate
+                .mul(qbtPriceCollateralCap)
+                .mul(qore.marketInfoOf(payable(assets[i])).collateralFactor)
+                .div(1e36);
+            }
+            else {
+                collateralValuePerShareInUSD = snapshot
+                .exchangeRate
+                .mul(prices[i])
+                .mul(qore.marketInfoOf(payable(assets[i])).collateralFactor)
+                .div(1e36);
+            }
+
             accCollateralValueInUSD = accCollateralValueInUSD.add(
                 snapshot.qTokenBalance.mul(collateralValuePerShareInUSD).div(1e18)
             );
