@@ -122,6 +122,11 @@ contract QDistributor is IQDistributor, WhitelistUpgradeable, ReentrancyGuardUpg
         emit QubitDistributionSpeedUpdated(qToken, supplySpeed, borrowSpeed);
     }
 
+    // For reward distribution to different network (such as Klaytn)
+    function withdrawReward(address receiver, uint amount) external onlyOwner {
+        QBT.safeTransfer(receiver, amount);
+    }
+
     /* ========== VIEWS ========== */
 
     function accruedQubit(address[] calldata markets, address account) external view override returns (uint) {
