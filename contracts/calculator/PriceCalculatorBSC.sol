@@ -58,6 +58,8 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
     IPancakeFactory private constant factory = IPancakeFactory(0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73);
     IPancakeFactory private constant mdexFactory = IPancakeFactory(0x3CD1C46068dAEa5Ebb0d3f55F6915B10648062B8);
 
+    uint private constant THRESHOLD = 5 minutes;
+
     /* ========== STATE VARIABLES ========== */
 
     address public keeper;
@@ -99,7 +101,9 @@ contract PriceCalculatorBSC is IPriceCalculator, OwnableUpgradeable {
         tokenFeeds[asset] = feed;
     }
 
-    function setPrices(address[] memory assets, uint[] memory prices) external onlyKeeper {
+    function setPrices(address[] memory assets, uint[] memory prices, uint timestamp) external onlyKeeper {
+        require(timestamp <= block.timestamp && block.timestamp.sub(timestamp) <= THRESHOLD, "PriceCalculator: invalid timestamp");
+
         for (uint i = 0; i < assets.length; i++) {
             references[assets[i]] = ReferenceData({lastData : prices[i], lastUpdated : block.timestamp});
         }
